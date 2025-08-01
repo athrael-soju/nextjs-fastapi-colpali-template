@@ -5,6 +5,7 @@ import {
   createConfig,
   type OptionsLegacyParser,
   urlSearchParamsBodySerializer,
+  formDataBodySerializer,
 } from "@hey-api/client-axios";
 import type {
   AuthJwtLoginData,
@@ -49,6 +50,18 @@ import type {
   DeleteItemData,
   DeleteItemError,
   DeleteItemResponse,
+  IndexDocumentsData,
+  IndexDocumentsError,
+  IndexDocumentsResponse,
+  SearchDocumentsData,
+  SearchDocumentsError,
+  SearchDocumentsResponse,
+  GetCollectionInfoError,
+  GetCollectionInfoResponse,
+  ClearCollectionError,
+  ClearCollectionResponse,
+  HealthCheckError,
+  HealthCheckResponse,
 } from "./types.gen";
 
 export const client = createClient(createConfig());
@@ -295,5 +308,95 @@ export const deleteItem = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: "/items/{item_id}",
+  });
+};
+
+/**
+ * Index Documents
+ * Index PDF documents for search
+ */
+export const indexDocuments = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<IndexDocumentsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    IndexDocumentsResponse,
+    IndexDocumentsError,
+    ThrowOnError
+  >({
+    ...options,
+    ...formDataBodySerializer,
+    headers: {
+      "Content-Type": null,
+      ...options?.headers,
+    },
+    url: "/colpali/index",
+  });
+};
+
+/**
+ * Search Documents
+ * Search indexed documents
+ */
+export const searchDocuments = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<SearchDocumentsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    SearchDocumentsResponse,
+    SearchDocumentsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/colpali/search",
+  });
+};
+
+/**
+ * Get Collection Info
+ * Get information about the current document collection
+ */
+export const getCollectionInfo = <ThrowOnError extends boolean = false>(
+  options?: OptionsLegacyParser<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCollectionInfoResponse,
+    GetCollectionInfoError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/colpali/info",
+  });
+};
+
+/**
+ * Clear Collection
+ * Clear all indexed documents
+ */
+export const clearCollection = <ThrowOnError extends boolean = false>(
+  options?: OptionsLegacyParser<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).delete<
+    ClearCollectionResponse,
+    ClearCollectionError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/colpali/clear",
+  });
+};
+
+/**
+ * Health Check
+ * Health check endpoint
+ */
+export const healthCheck = <ThrowOnError extends boolean = false>(
+  options?: OptionsLegacyParser<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    HealthCheckResponse,
+    HealthCheckError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/colpali/health",
   });
 };
