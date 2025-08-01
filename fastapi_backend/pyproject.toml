@@ -11,6 +11,19 @@ dependencies = [
     "fastapi-users[sqlalchemy]>=13.0.0,<14",
     "pydantic-settings>=2.5.2,<3",
     "fastapi-mail>=1.4.1,<2",
+    "colpali-engine",
+    "pdf2image",
+    "accelerate",
+    "openai",
+    "tqdm",
+    "Pillow",
+    "qdrant-client",
+    "numpy",
+    "python-dotenv",
+    "minio",
+    "torch @ https://download.pytorch.org/whl/nightly/cu129/torch_nightly.html",
+    "torchvision @ https://download.pytorch.org/whl/nightly/cu129/torchvision.html",
+    "torchaudio @ https://download.pytorch.org/whl/nightly/cu129/torchaudio.html"
 ]
 
 [dependency-groups]

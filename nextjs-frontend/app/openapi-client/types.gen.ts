@@ -22,6 +22,24 @@ export type Body_auth_verify_verify = {
   token: string;
 };
 
+export type Body_colpali_index_documents = {
+  files: Array<Blob | File>;
+};
+
+export type ClearResponse = {
+  status: string;
+  message: string;
+};
+
+export type CollectionInfoResponse = {
+  status: string;
+  storage_type?: string | null;
+  indexed_documents?: number | null;
+  indexed_images?: number | null;
+  collection_info?: unknown | null;
+  message?: string | null;
+};
+
 export type ErrorModel = {
   detail:
     | string
@@ -32,6 +50,12 @@ export type ErrorModel = {
 
 export type HTTPValidationError = {
   detail?: Array<ValidationError>;
+};
+
+export type IndexResponse = {
+  status: string;
+  message: string;
+  indexed_pages?: number | null;
 };
 
 export type ItemCreate = {
@@ -55,6 +79,27 @@ export type login = {
   scope?: string;
   client_id?: string | null;
   client_secret?: string | null;
+};
+
+export type SearchRequest = {
+  query: string;
+  k?: number | null;
+  api_key?: string | null;
+};
+
+export type SearchResponse = {
+  status: string;
+  query?: string | null;
+  results?: Array<SearchResult> | null;
+  total_results?: number | null;
+  ai_response?: string | null;
+  message?: string | null;
+};
+
+export type SearchResult = {
+  rank: number;
+  page_info: string;
+  image_size?: Array<unknown> | null;
 };
 
 export type UserCreate = {
@@ -206,3 +251,31 @@ export type DeleteItemData = {
 export type DeleteItemResponse = unknown;
 
 export type DeleteItemError = HTTPValidationError;
+
+export type IndexDocumentsData = {
+  body: Body_colpali_index_documents;
+};
+
+export type IndexDocumentsResponse = IndexResponse;
+
+export type IndexDocumentsError = HTTPValidationError;
+
+export type SearchDocumentsData = {
+  body: SearchRequest;
+};
+
+export type SearchDocumentsResponse = SearchResponse;
+
+export type SearchDocumentsError = HTTPValidationError;
+
+export type GetCollectionInfoResponse = CollectionInfoResponse;
+
+export type GetCollectionInfoError = unknown;
+
+export type ClearCollectionResponse = ClearResponse;
+
+export type ClearCollectionError = unknown;
+
+export type HealthCheckResponse = unknown;
+
+export type HealthCheckError = unknown;
