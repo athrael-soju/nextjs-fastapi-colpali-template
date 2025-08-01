@@ -9,6 +9,15 @@ import { Search, RefreshCw, Sparkles } from "lucide-react"
 import { SearchResults } from "@/components/search-results"
 import { LLMResponseCard } from "@/components/llm-response-card"
 
+interface SearchResult {
+  id: number
+  document: string
+  page: number
+  score: number
+  imageUrl: string
+  snippet: string
+}
+
 interface SearchTabProps {
   searchQuery: string
   setSearchQuery: (query: string) => void
@@ -17,7 +26,7 @@ interface SearchTabProps {
 export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
   const [enableLLMResponse, setEnableLLMResponse] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState([])
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [llmResponse, setLlmResponse] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
 
@@ -66,7 +75,7 @@ export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
     }, 2000)
   }
 
-  const generateLLMResponse = async (results) => {
+  const generateLLMResponse = async (results: SearchResult[]) => {
     setIsStreaming(true)
     setLlmResponse("")
 

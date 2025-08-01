@@ -9,9 +9,12 @@ import { Upload, RefreshCw } from "lucide-react"
 interface IndexTabProps {
   isIndexing: boolean
   onFileUpload: () => void
+  files: File[]
+  onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void
+  message: string
 }
 
-export function IndexTab({ isIndexing, onFileUpload }: IndexTabProps) {
+export function IndexTab({ isIndexing, onFileUpload, files, onFileSelect, message }: IndexTabProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">

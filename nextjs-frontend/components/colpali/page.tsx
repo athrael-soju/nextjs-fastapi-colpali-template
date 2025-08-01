@@ -1,26 +1,24 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Search, Cloud, Settings, FileText, Menu, Loader2, Info, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Upload, Search, Cloud, Settings, FileText } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-import { AppSidebar } from "@/components/app-sidebar"
 import { StatsCards } from "@/components/stats-cards"
-import { useIsMobile } from "@/lib/hooks/use-mobile"
+import { IndexTab } from "@/components/index-tab"
+import { SearchTab } from "@/components/search-tab"
+import { StorageTab } from "@/components/storage-tab"
+import { ManageTab } from "@/components/manage-tab"
 import { useToast } from "@/lib/hooks/use-toast"
 import { colpaliService } from "@/lib/colpali"
 import type { CollectionInfoResponse, SearchResult } from "@/app/clientService"
 
-export default function Dashboard() {
+export default function ColPaliDashboard() {
   const [activeTab, setActiveTab] = useState("index")
   const [searchQuery, setSearchQuery] = useState("")
   const [isIndexing, setIsIndexing] = useState(false)
@@ -35,9 +33,16 @@ export default function Dashboard() {
   const [indexedImages, setIndexedImages] = useState(0)
   const [storageUsed, setStorageUsed] = useState(0)
   const [totalStorage, setTotalStorage] = useState(10)
+  const [minioFiles, setMinioFiles] = useState<{
+    id: number;
+    name: string;
+    size: string;
+    lastModified: string;
+    bucket: string;
+  }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const isMobile = useIsMobile()
+
   const { toast } = useToast()
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,34 +211,33 @@ export default function Dashboard() {
     }
   }
 
+  const handleDeleteFile = (fileId: number) => {
+    setMinioFiles((prev) => prev.filter((file) => file.id !== fileId))
+    setStorageUsed((prev) => Math.max(0, prev - 0.5))
+    setIndexedDocs((prev) => Math.max(0, prev - 1))
+    toast({
+      title: "File Deleted",
+      description: "File has been removed from storage",
+    })
+  }
+
+  const handleDownloadFile = (fileName: string) => {
+    console.log("Downloading:", fileName)
+    toast({
+      title: "Download Started",
+      description: `Downloading ${fileName}...`,
+    })
+  }
+
   useEffect(() => {
     refreshCollectionInfo()
   }, [])
 
-  const SidebarContent = () => <AppSidebar />
-
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gray-50/30">
-        {!isMobile ? (
-          <SidebarContent />
-        ) : (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="fixed top-4 left-4 z-50 md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64">
-              <SidebarContent />
-            </SheetContent>
-          </Sheet>
-        )}
-        
-        <SidebarInset className="flex-1">
-          <header className={`flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 bg-white ${isMobile ? 'px-4 pl-16' : 'px-6'}`}>
-            {!isMobile && <SidebarTrigger className="text-gray-600" />}
-            {!isMobile && <Separator orientation="vertical" className="h-6" />}
+    <SidebarInset className="flex-1">
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-100 px-6 bg-white">
+        <SidebarTrigger className="text-gray-600" />
+        <Separator orientation="vertical" className="h-6" />
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="w-8 h-8 gradient-card-blue rounded-lg flex items-center justify-center">
                 <FileText className="w-4 h-4 text-white" />
@@ -261,255 +265,70 @@ export default function Dashboard() {
             <Card className="border-0 shadow-sm">
               <CardContent className="p-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-6">
-                    <TabsTrigger value="index" className="flex items-center gap-2">
+                  <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-xl">
+                    <TabsTrigger
+                      value="index"
+                      className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                    >
                       <Upload className="w-4 h-4" />
                       Index Documents
                     </TabsTrigger>
-                    <TabsTrigger value="search" className="flex items-center gap-2">
+                    <TabsTrigger
+                      value="search"
+                      className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                    >
                       <Search className="w-4 h-4" />
                       Search
                     </TabsTrigger>
-                    <TabsTrigger value="manage" className="flex items-center gap-2">
+                    <TabsTrigger
+                      value="storage"
+                      className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                    >
+                      <Cloud className="w-4 h-4" />
+                      Storage
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="manage"
+                      className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium"
+                    >
                       <Settings className="w-4 h-4" />
                       Manage
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="index" className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Upload PDF Files</h3>
-                      <p className="text-gray-600 max-w-2xl mx-auto">
-                        Select PDF documents to index with vision-language models for intelligent search
-                      </p>
-                    </div>
-
-                    <div className="max-w-2xl mx-auto space-y-4">
-                      <div>
-                        <Label htmlFor="file-input" className="text-sm font-medium text-gray-700">
-                          Select PDF Files
-                        </Label>
-                        <Input
-                          id="file-input"
-                          ref={fileInputRef}
-                          type="file"
-                          multiple
-                          accept=".pdf"
-                          onChange={handleFileSelect}
-                          className="mt-1 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        />
-                      </div>
-                      
-                      {files.length > 0 && (
-                        <div className="space-y-2">
-                          <Label>Selected Files ({files.length}):</Label>
-                          <div className="max-h-32 overflow-y-auto space-y-1">
-                            {files.map((file, index) => (
-                              <div key={index} className="text-sm p-3 bg-blue-50 rounded-xl border border-blue-100">
-                                <div className="flex justify-between items-center">
-                                  <span className="font-medium text-blue-900">{file.name}</span>
-                                  <span className="text-blue-600">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all">
-                        <div className="w-16 h-16 gradient-card-blue rounded-2xl flex items-center justify-center mx-auto mb-6">
-                          <Upload className="w-8 h-8 text-white" />
-                        </div>
-                        <h4 className="text-lg font-semibold text-gray-900 mb-2">Ready to Index</h4>
-                        <p className="text-gray-600 mb-6">
-                          {files.length > 0 
-                            ? `${files.length} PDF file${files.length > 1 ? 's' : ''} selected for indexing`
-                            : "Select PDF files above to get started"
-                          }
-                        </p>
-                        <Button 
-                          onClick={handleFileUpload}
-                          disabled={isIndexing || files.length === 0}
-                          size="lg"
-                          className="gradient-card-blue text-white border-0 hover:opacity-90"
-                        >
-                          {isIndexing ? (
-                            <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                              Indexing Documents...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="mr-2 h-5 w-5" />
-                              Index {files.length > 0 ? `${files.length} Document${files.length > 1 ? 's' : ''}` : 'Documents'}
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
+                  <TabsContent value="index" className="space-y-8 mt-8">
+                    <IndexTab 
+                      isIndexing={isIndexing} 
+                      onFileUpload={handleFileUpload}
+                      files={files}
+                      onFileSelect={handleFileSelect}
+                      message={message}
+                    />
                   </TabsContent>
 
-                  <TabsContent value="search" className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Search Documents</h3>
-                      <p className="text-gray-600 max-w-2xl mx-auto">
-                        Use natural language to search through your indexed documents
-                      </p>
-                    </div>
-
-                    <div className="max-w-2xl mx-auto space-y-4">
-                      <div className="flex gap-3">
-                        <Input
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Enter your search query..."
-                          className="flex-1 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                        />
-                        <Button 
-                          onClick={handleSearch}
-                          disabled={isSearching || !searchQuery.trim()}
-                          size="lg"
-                          className="gradient-card-blue text-white border-0 hover:opacity-90"
-                        >
-                          {isSearching ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                          ) : (
-                            <Search className="h-5 w-5" />
-                          )}
-                        </Button>
-                      </div>
-
-                      {aiResponse && (
-                        <Card className="bg-blue-50 border-blue-200">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-blue-900 text-lg flex items-center gap-2">
-                              <Info className="w-5 h-5" />
-                              AI Response
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-blue-800">{aiResponse}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {searchResults.length > 0 && (
-                        <div className="space-y-4">
-                          <h4 className="font-semibold text-gray-900">Search Results ({searchResults.length})</h4>
-                          {searchResults.map((result, index) => (
-                            <Card key={index} className="border border-gray-200 hover:shadow-md transition-shadow">
-                              <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-3">
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                    Rank #{result.rank}
-                                  </Badge>
-                                  {result.image_size && (
-                                    <span className="text-sm text-gray-500">
-                                      Size: {Array.isArray(result.image_size) ? result.image_size.join('×') : result.image_size}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-gray-700">{result.page_info}</p>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  <TabsContent value="search" className="space-y-8 mt-8">
+                    <SearchTab 
+                      searchQuery={searchQuery} 
+                      setSearchQuery={setSearchQuery}
+                    />
                   </TabsContent>
 
-                  <TabsContent value="manage" className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Manage Collection</h3>
-                      <p className="text-gray-600 max-w-2xl mx-auto">
-                        View collection information and manage your indexed documents
-                      </p>
-                    </div>
+                  <TabsContent value="storage" className="space-y-8 mt-8">
+                    <StorageTab
+                      storageUsed={storageUsed}
+                      totalStorage={totalStorage}
+                      minioFiles={minioFiles}
+                      onDeleteFile={handleDeleteFile}
+                      onDownloadFile={handleDownloadFile}
+                    />
+                  </TabsContent>
 
-                    <div className="max-w-2xl mx-auto space-y-6">
-                      <div className="flex gap-3">
-                        <Button 
-                          onClick={refreshCollectionInfo}
-                          disabled={isLoading}
-                          variant="outline"
-                          className="flex-1 rounded-xl"
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <Info className="mr-2 h-4 w-4" />
-                              Refresh Info
-                            </>
-                          )}
-                        </Button>
-                        <Button 
-                          onClick={handleClearCollection}
-                          disabled={isLoading}
-                          variant="destructive"
-                          className="flex-1 rounded-xl"
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Clearing...
-                            </>
-                          ) : (
-                            <>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Clear Collection
-                            </>
-                          )}
-                        </Button>
-                      </div>
-
-                      {collectionInfo && (
-                        <Card className="border border-gray-200">
-                          <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <Cloud className="w-5 h-5" />
-                              Collection Information
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <span className="text-sm font-medium text-gray-500">Status</span>
-                                <p className="text-lg font-semibold text-gray-900">{collectionInfo.status}</p>
-                              </div>
-                              {collectionInfo.storage_type && (
-                                <div>
-                                  <span className="text-sm font-medium text-gray-500">Storage Type</span>
-                                  <p className="text-lg font-semibold text-gray-900">{collectionInfo.storage_type}</p>
-                                </div>
-                              )}
-                              {collectionInfo.indexed_documents !== undefined && (
-                                <div>
-                                  <span className="text-sm font-medium text-gray-500">Indexed Documents</span>
-                                  <p className="text-lg font-semibold text-gray-900">{collectionInfo.indexed_documents}</p>
-                                </div>
-                              )}
-                              {collectionInfo.indexed_images !== undefined && (
-                                <div>
-                                  <span className="text-sm font-medium text-gray-500">Indexed Images</span>
-                                  <p className="text-lg font-semibold text-gray-900">{collectionInfo.indexed_images}</p>
-                                </div>
-                              )}
-                            </div>
-                            {collectionInfo.message && (
-                              <div className="pt-3 border-t border-gray-200">
-                                <span className="text-sm font-medium text-gray-500">Message</span>
-                                <p className="text-gray-700 mt-1">{collectionInfo.message}</p>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
+                  <TabsContent value="manage" className="space-y-8 mt-8">
+                    <ManageTab
+                      collectionStatus={collectionInfo?.status || "unknown"}
+                      minioFiles={minioFiles}
+                      onClearCollection={handleClearCollection}
+                    />
                   </TabsContent>
                 </Tabs>
 
@@ -530,9 +349,7 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+      </main>
+    </SidebarInset>
   )
 }
