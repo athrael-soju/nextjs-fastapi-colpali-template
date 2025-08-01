@@ -13,9 +13,6 @@ import Image from "next/image"
 export function AppSidebar() {
   const menuItems = [
     { title: "Dashboard", icon: Home, href: "/dashboard", id: "dashboard" },
-    { title: "Items", icon: List, href: "/dashboard", id: "items" },
-    { title: "Add Item", icon: Plus, href: "/dashboard/add-item", id: "add-item" },
-    { title: "Customers", icon: Users2, href: "/customers", id: "customers" },
     { title: "ColPali Search", icon: FileText, href: "/dashboard/colpali", id: "colpali" },
     { title: "Analytics", icon: BarChart3, href: "#", id: "analytics" },
     { title: "Settings", icon: Settings, href: "#", id: "settings" },
