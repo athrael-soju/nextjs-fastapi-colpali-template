@@ -44,6 +44,7 @@ class SearchResult(BaseModel):
     page_info: str
     image_size: Optional[tuple] = None
     image_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 
 class SearchResponse(BaseModel):

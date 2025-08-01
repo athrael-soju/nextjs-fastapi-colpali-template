@@ -951,11 +951,6 @@
         "summary": "Get Search Image",
         "description": "Get search result image by ID",
         "operationId": "get_search_image",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "image_id",
@@ -1476,6 +1471,17 @@
               }
             ],
             "title": "Image Url"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
           }
         },
         "type": "object",

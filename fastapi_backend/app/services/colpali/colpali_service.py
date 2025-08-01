@@ -87,7 +87,15 @@ class ColPaliService:
             
             # Format results for API response
             search_results = []
-            for i, (image, page_info) in enumerate(results):
+            for i, result in enumerate(results):
+                if len(result) == 2:
+                    # Handle old format (image, page_info)
+                    image, page_info = result
+                    thumbnail_url = None
+                else:
+                    # Handle new format (image, page_info, thumbnail_url)
+                    image, page_info, thumbnail_url = result
+                
                 # Generate unique ID for the image
                 image_id = str(uuid.uuid4())
                 
@@ -95,13 +103,14 @@ class ColPaliService:
                 self.image_store[image_id] = image
                 
                 # Generate image URL
-                image_url = f"/api/colpali/image/{image_id}"
+                image_url = f"/colpali/image/{image_id}"
                 
                 search_results.append({
                     "rank": i + 1,
                     "page_info": page_info,
                     "image_size": image.size if hasattr(image, 'size') else None,
-                    "image_url": image_url
+                    "image_url": image_url,
+                    "thumbnail_url": thumbnail_url or image_url  # Fallback to image_url if no thumbnail
                 })
             
             response = {

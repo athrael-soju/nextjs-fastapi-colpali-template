@@ -101,6 +101,7 @@ export type SearchResult = {
   page_info: string;
   image_size?: Array<unknown> | null;
   image_url?: string | null;
+  thumbnail_url?: string | null;
 };
 
 export type UserCreate = {

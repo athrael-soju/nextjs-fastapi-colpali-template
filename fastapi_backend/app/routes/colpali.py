@@ -149,7 +149,6 @@ async def clear_collection(
 @router.get("/image/{image_id}")
 async def get_search_image(
     image_id: str,
-    user: User = Depends(current_active_user),
     service: ColPaliService = Depends(get_colpali_service),
 ):
     """Get search result image by ID"""

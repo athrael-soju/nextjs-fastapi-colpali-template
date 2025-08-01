@@ -17,7 +17,10 @@ interface SearchResult {
   page: number
   score: number
   imageUrl: string
+  thumbnailUrl: string
   snippet: string
+  fullImageLoading?: boolean
+  fullImageLoaded?: boolean
 }
 
 interface SearchTabProps {
@@ -46,9 +49,32 @@ export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
       
       // Transform backend results to match our UI format
       const transformedResults: SearchResult[] = (response.results || []).map((result: BackendSearchResult, index: number) => {
-        // Construct full image URL with API base URL
-        const baseURL = process.env.API_BASE_URL || "http://localhost:8000";
-        const fullImageUrl = result.image_url ? `${baseURL}${result.image_url}` : "/placeholder.svg?height=300&width=400";
+        // Helper function to construct proper URLs
+        const constructUrl = (url: string | null | undefined, isThumbnail = false): string => {
+          if (!url) return "/placeholder.svg?height=300&width=400";
+          
+          // If it's already a full URL, return it as is
+          if (url.startsWith('http')) return url;
+          
+          // If it's a path, construct the full URL
+          const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
+          const cleanPath = url.startsWith('/') ? url : `/${url}`;
+          
+          // For thumbnails, we can add quality parameters if needed
+          if (isThumbnail) {
+            return `${baseURL}${cleanPath}?quality=80&width=400`;
+          }
+          
+          return `${baseURL}${cleanPath}`;
+        };
+        
+        // Safely get URLs with fallbacks
+        const imageUrl = result.image_url || '';
+        const thumbUrl = result.thumbnail_url || imageUrl;
+        
+        // Construct URLs with proper types
+        const fullImageUrl = constructUrl(imageUrl);
+        const thumbnailUrl = constructUrl(thumbUrl, true);
         
         return {
           id: index + 1,
@@ -56,7 +82,10 @@ export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
           page: result.rank,
           score: 0.95 - (index * 0.1), // Mock score for now
           imageUrl: fullImageUrl,
-          snippet: result.page_info || "No preview available"
+          thumbnailUrl: thumbnailUrl,
+          snippet: result.page_info || "No preview available",
+          fullImageLoading: false,
+          fullImageLoaded: false
         };
       })
 
