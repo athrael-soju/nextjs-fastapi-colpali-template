@@ -100,6 +100,7 @@ export type SearchResult = {
   rank: number;
   page_info: string;
   image_size?: Array<unknown> | null;
+  image_url?: string | null;
 };
 
 export type UserCreate = {
@@ -275,6 +276,16 @@ export type GetCollectionInfoError = unknown;
 export type ClearCollectionResponse = ClearResponse;
 
 export type ClearCollectionError = unknown;
+
+export type GetSearchImageData = {
+  path: {
+    image_id: string;
+  };
+};
+
+export type GetSearchImageResponse = unknown;
+
+export type GetSearchImageError = HTTPValidationError;
 
 export type HealthCheckResponse = unknown;
 

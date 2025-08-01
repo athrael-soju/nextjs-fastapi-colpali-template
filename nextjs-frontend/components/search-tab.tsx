@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch"
 import { Search, RefreshCw, Sparkles } from "lucide-react"
 import { SearchResults } from "@/components/search-results"
 import { LLMResponseCard } from "@/components/llm-response-card"
+import { colpaliService } from "@/lib/colpali"
+import type { SearchResult as BackendSearchResult } from "@/app/clientService"
 
 interface SearchResult {
   id: number
@@ -31,64 +33,75 @@ export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
   const [isStreaming, setIsStreaming] = useState(false)
 
   const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
     console.log("Searching for:", searchQuery)
     setIsSearching(true)
     setSearchResults([])
     setLlmResponse("")
 
-    // Simulate search results with images
-    setTimeout(() => {
-      const mockResults = [
-        {
-          id: 1,
-          document: "financial_report_q3.pdf",
-          page: 2,
-          score: 0.95,
-          imageUrl: "/placeholder.svg?height=300&width=400",
-          snippet: "Q3 revenue increased by 23% compared to previous quarter",
-        },
-        {
-          id: 2,
-          document: "product_catalog.pdf",
-          page: 5,
-          score: 0.87,
-          imageUrl: "/placeholder.svg?height=300&width=400",
-          snippet: "Product comparison showing features and pricing tiers",
-        },
-        {
-          id: 3,
-          document: "presentation_slides.pdf",
-          page: 12,
-          score: 0.82,
-          imageUrl: "/placeholder.svg?height=300&width=400",
-          snippet: "Market analysis presentation with growth projections",
-        },
-      ]
+    try {
+      // Call the actual ColPali backend service
+      const response = await colpaliService.searchDocuments(searchQuery, 5)
+      
+      // Transform backend results to match our UI format
+      const transformedResults: SearchResult[] = (response.results || []).map((result: BackendSearchResult, index: number) => {
+        // Construct full image URL with API base URL
+        const baseURL = process.env.API_BASE_URL || "http://localhost:8000";
+        const fullImageUrl = result.image_url ? `${baseURL}${result.image_url}` : "/placeholder.svg?height=300&width=400";
+        
+        return {
+          id: index + 1,
+          document: `Document ${index + 1}`,
+          page: result.rank,
+          score: 0.95 - (index * 0.1), // Mock score for now
+          imageUrl: fullImageUrl,
+          snippet: result.page_info || "No preview available"
+        };
+      })
 
-      setSearchResults(mockResults)
+      setSearchResults(transformedResults)
       setIsSearching(false)
 
       // If LLM response is enabled, process the results
       if (enableLLMResponse) {
-        generateLLMResponse(mockResults)
+        // Use the AI response from the backend if available, otherwise generate our own
+        if (response.ai_response) {
+          streamLLMResponse(response.ai_response)
+        } else {
+          generateLLMResponse(transformedResults)
+        }
       }
-    }, 2000)
+    } catch (error) {
+      console.error("Search failed:", error)
+      setIsSearching(false)
+      // Handle error appropriately in UI
+    }
+  }
+
+  const streamLLMResponse = async (responseText: string) => {
+    setIsStreaming(true)
+    setLlmResponse("")
+
+    // Stream the response character by character
+    for (let i = 0; i <= responseText.length; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      setLlmResponse(responseText.slice(0, i))
+    }
+
+    setIsStreaming(false)
   }
 
   const generateLLMResponse = async (results: SearchResult[]) => {
     setIsStreaming(true)
     setLlmResponse("")
 
-    // Simulate streaming LLM response
+    // Generate LLM response based on actual search results
     const fullResponse = `Based on the search results, I found ${results.length} relevant documents that match your query. Here's what I can tell you:
 
-1. **Financial Report Q3** (Score: ${results[0]?.score}): The document shows strong Q3 performance with revenue growth of 23% compared to the previous quarter. This indicates positive business momentum.
+${results.map((result, index) => `${index + 1}. **${result.document}** (Page ${result.page}): ${result.snippet}`).join('\n\n')}
 
-2. **Product Catalog** (Score: ${results[1]?.score}): Contains detailed product comparisons with pricing information, which could be useful for understanding your product positioning and competitive landscape.
-
-3. **Presentation Slides** (Score: ${results[2]?.score}): Includes market analysis with growth projections, providing insights into future business opportunities.
-
-The visual content in these documents suggests a focus on data-driven decision making and comprehensive business analysis. Would you like me to elaborate on any specific aspect of these findings?`
+These documents seem to be relevant to your query. Would you like me to elaborate on any specific aspect of these findings?`
 
     // Stream the response character by character
     for (let i = 0; i <= fullResponse.length; i++) {
@@ -165,6 +178,19 @@ The visual content in these documents suggests a focus on data-driven decision m
 
           {/* LLM Response Section */}
           {enableLLMResponse && <LLMResponseCard response={llmResponse} isStreaming={isStreaming} />}
+        </div>
+      )}
+      
+      {/* No Results Message */}
+      {searchResults.length === 0 && !isSearching && searchQuery && (
+        <div className="max-w-5xl mx-auto space-y-6">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-gray-400" />
+            </div>
+            <h4 className="text-lg font-medium text-gray-900 mb-2">No results found</h4>
+            <p className="text-gray-600">Try refining your search query or check if documents are indexed.</p>
+          </div>
         </div>
       )}
     </div>

@@ -60,6 +60,9 @@ import type {
   GetCollectionInfoResponse,
   ClearCollectionError,
   ClearCollectionResponse,
+  GetSearchImageData,
+  GetSearchImageError,
+  GetSearchImageResponse,
   HealthCheckError,
   HealthCheckResponse,
 } from "./types.gen";
@@ -381,6 +384,23 @@ export const clearCollection = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: "/colpali/clear",
+  });
+};
+
+/**
+ * Get Search Image
+ * Get search result image by ID
+ */
+export const getSearchImage = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<GetSearchImageData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetSearchImageResponse,
+    GetSearchImageError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/colpali/image/{image_id}",
   });
 };
 

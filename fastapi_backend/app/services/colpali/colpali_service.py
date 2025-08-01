@@ -1,4 +1,5 @@
 import torch
+import uuid
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 
 from app.config import settings
@@ -33,8 +34,10 @@ class ColPaliService:
                 self.storage_service = MemoryStoreService(self.model, self.processor)
                 self.ds = []  # In-memory document store
                 self.images = []  # In-memory images
+                self.image_store = {}  # Store images by ID for serving
             elif settings.STORAGE_TYPE == "qdrant":
                 self.storage_service = QdrantService(self.model, self.processor)
+                self.image_store = {}  # Store images by ID for serving
             else:
                 raise InvalidConfigurationError(f"Invalid storage type: {settings.STORAGE_TYPE}")
         except Exception as e:
@@ -85,10 +88,20 @@ class ColPaliService:
             # Format results for API response
             search_results = []
             for i, (image, page_info) in enumerate(results):
+                # Generate unique ID for the image
+                image_id = str(uuid.uuid4())
+                
+                # Store image in the image store for serving
+                self.image_store[image_id] = image
+                
+                # Generate image URL
+                image_url = f"/api/colpali/image/{image_id}"
+                
                 search_results.append({
                     "rank": i + 1,
                     "page_info": page_info,
-                    "image_size": image.size if hasattr(image, 'size') else None
+                    "image_size": image.size if hasattr(image, 'size') else None,
+                    "image_url": image_url
                 })
             
             response = {
@@ -140,12 +153,14 @@ class ColPaliService:
             if settings.STORAGE_TYPE == "memory":
                 self.ds.clear()
                 self.images.clear()
+                self.image_store.clear()
                 return {
                     "status": "success",
                     "message": "Memory store cleared successfully"
                 }
             elif settings.STORAGE_TYPE == "qdrant":
                 result = self.storage_service.clear_collection()
+                self.image_store.clear()
                 return {
                     "status": "success",
                     "message": result
@@ -155,3 +170,7 @@ class ColPaliService:
                 "status": "error",
                 "message": f"Error clearing collection: {str(e)}"
             }
+    
+    def get_image_by_id(self, image_id: str):
+        """Get image by ID for serving"""
+        return self.image_store.get(image_id)

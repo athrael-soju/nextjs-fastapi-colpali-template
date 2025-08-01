@@ -943,6 +943,52 @@
         ]
       }
     },
+    "/colpali/image/{image_id}": {
+      "get": {
+        "tags": [
+          "colpali"
+        ],
+        "summary": "Get Search Image",
+        "description": "Get search result image by ID",
+        "operationId": "get_search_image",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Image Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/colpali/health": {
       "get": {
         "tags": [
@@ -1419,6 +1465,17 @@
               }
             ],
             "title": "Image Size"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
           }
         },
         "type": "object",
