@@ -11,7 +11,7 @@ import { LLMResponseCard } from "@/components/llm-response-card"
 import { colpaliService } from "@/lib/colpali"
 import type { SearchResult as BackendSearchResult } from "@/app/clientService"
 
-interface SearchResult {
+interface UISearchResult {
   id: number
   document: string
   page: number
@@ -21,6 +21,12 @@ interface SearchResult {
   snippet: string
   fullImageLoading?: boolean
   fullImageLoaded?: boolean
+  metadata?: {
+    filename?: string
+    size?: number
+    last_modified?: string
+    content_type?: string
+  }
 }
 
 interface SearchTabProps {
@@ -31,7 +37,7 @@ interface SearchTabProps {
 export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
   const [enableLLMResponse, setEnableLLMResponse] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searchResults, setSearchResults] = useState<UISearchResult[]>([])
   const [llmResponse, setLlmResponse] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
 
@@ -48,7 +54,7 @@ export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
       const response = await colpaliService.searchDocuments(searchQuery, 5)
       
       // Transform backend results to match our UI format
-      const transformedResults: SearchResult[] = (response.results || []).map((result: BackendSearchResult, index: number) => {
+      const transformedResults: UISearchResult[] = (response.results || []).map((result: BackendSearchResult, index: number) => {
         // Helper function to construct proper URLs
         const constructUrl = (url: string | null | undefined, isThumbnail = false): string => {
           if (!url) return "/placeholder.svg?height=300&width=400";
@@ -76,16 +82,25 @@ export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
         const fullImageUrl = constructUrl(imageUrl);
         const thumbnailUrl = constructUrl(thumbUrl, true);
         
+        // Extract metadata from the result
+        const metadata = {
+          filename: `Document ${index + 1}.pdf`,
+          size: 0, // Not available in the API response
+          last_modified: new Date().toISOString(), // Not available in the API response
+          content_type: 'application/pdf' // Default to PDF
+        };
+
         return {
-          id: index + 1,
-          document: `Document ${index + 1}`,
-          page: result.rank,
-          score: 0.95 - (index * 0.1), // Mock score for now
+          id: index,
+          document: result.page_info || `Document ${index + 1}`,
+          page: result.rank || 1,
+          score: result.rank ? 1 - (result.rank / 100) : 0,
           imageUrl: fullImageUrl,
           thumbnailUrl: thumbnailUrl,
-          snippet: result.page_info || "No preview available",
+          snippet: result.page_info || 'No description available',
           fullImageLoading: false,
-          fullImageLoaded: false
+          fullImageLoaded: false,
+          metadata
         };
       })
 
@@ -121,7 +136,7 @@ export function SearchTab({ searchQuery, setSearchQuery }: SearchTabProps) {
     setIsStreaming(false)
   }
 
-  const generateLLMResponse = async (results: SearchResult[]) => {
+  const generateLLMResponse = async (results: UISearchResult[]) => {
     setIsStreaming(true)
     setLlmResponse("")
 

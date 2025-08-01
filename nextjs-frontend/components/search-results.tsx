@@ -1,9 +1,9 @@
 import { useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Download, Loader2, X } from "lucide-react"
+import { Eye, Download, Loader2, X, FileText, FileImage } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -11,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { formatDistanceToNow } from "date-fns"
 
 interface SearchResult {
   id: number
@@ -22,6 +24,12 @@ interface SearchResult {
   snippet: string
   fullImageLoading?: boolean
   fullImageLoaded?: boolean
+  metadata?: {
+    filename?: string
+    size?: number
+    last_modified?: string
+    content_type?: string
+  }
 }
 
 interface SearchResultsProps {
@@ -30,11 +38,30 @@ interface SearchResultsProps {
 
 export function SearchResults({ results: initialResults }: SearchResultsProps) {
   const [results, setResults] = useState<SearchResult[]>(initialResults);
-  const [selectedImage, setSelectedImage] = useState<{ url: string; title: string } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ 
+    url: string; 
+    title: string;
+    metadata?: {
+      filename?: string;
+      size?: number;
+      last_modified?: string;
+    };
+  } | null>(null);
   const [isImageLoading, setIsImageLoading] = useState(false);
 
-  const handleViewImage = async (imageUrl: string, documentName: string) => {
-    setSelectedImage({ url: imageUrl, title: documentName });
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return 'N/A';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleViewImage = async (result: SearchResult) => {
+    setSelectedImage({ 
+      url: result.imageUrl, 
+      title: result.metadata?.filename || `Document ${result.id}`,
+      metadata: result.metadata
+    });
   };
 
   const handleCloseModal = () => {
@@ -67,74 +94,62 @@ export function SearchResults({ results: initialResults }: SearchResultsProps) {
   };
 
   return (
-    <>
-      <div className="flex items-center justify-between mb-6">
-        <h4 className="text-xl font-bold text-gray-900">Search Results</h4>
-        <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
-          {results.length} result{results.length !== 1 ? 's' : ''} found
-        </Badge>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {results.map((result) => (
-          <Card key={result.id} className="border-gray-200 hover:shadow-lg transition-shadow group">
-            <CardContent className="p-0">
-              <div className="aspect-[4/3] bg-gray-100 rounded-t-lg overflow-hidden relative">
-                <div className="relative w-full h-full">
+          <Card key={result.id} className="overflow-hidden transition-all hover:shadow-md h-full flex flex-col">
+            <CardHeader className="p-4 pb-2">
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-base font-medium line-clamp-1 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    {result.metadata?.filename || `Document ${result.id}`}
+                  </CardTitle>
+                </div>
+                <Badge variant="secondary" className="ml-2">
+                  {Math.round(result.score * 100)}%
+                </Badge>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-0 flex-1 flex flex-col">
+              <div className="relative aspect-video w-full overflow-hidden bg-gray-100 group">
+                {result.thumbnailUrl ? (
                   <Image
-                    src={result.thumbnailUrl || result.imageUrl}
-                    alt={`Thumbnail of page ${result.page}`}
+                    src={result.thumbnailUrl}
+                    alt={`Thumbnail for ${result.metadata?.filename || 'document'}`}
                     fill
-                    className="object-cover transition-transform duration-200 group-hover:scale-105"
+                    className="object-cover transition-all group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      onClick={() => handleViewImage(result.imageUrl, result.document)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" /> View
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      onClick={() => handleDownload(result.imageUrl, result.document)}
-                      disabled={isImageLoading}
-                    >
-                      {isImageLoading ? (
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4 mr-1" />
-                      )}
-                      Download
-                    </Button>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <FileImage className="h-12 w-12 text-gray-300" />
                   </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center gap-4 bg-black/50 opacity-0 transition-all group-hover:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full bg-white/90 text-gray-900 hover:bg-white"
+                    onClick={() => handleViewImage(result)}
+                  >
+                    <Eye className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full bg-white/90 text-gray-900 hover:bg-white"
+                    onClick={() => handleDownload(result.imageUrl, result.metadata?.filename || `document-${result.id}`)}
+                  >
+                    <Download className="h-5 w-5" />
+                  </Button>
                 </div>
               </div>
               
-              <div className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-gray-900 line-clamp-1">{result.document}</h3>
-                  <Badge variant="outline" className="text-xs">
-                    Page {result.page}
-                  </Badge>
-                </div>
-                
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {result.snippet || 'No text content available'}
-                </p>
-                
-                <div className="flex items-center justify-between pt-2">
-                  <Badge variant="outline" className="text-xs">
-                    {Math.round(result.score * 100)}% match
-                  </Badge>
-                  
-                  <div className="text-xs text-gray-500">
-                    Click the image to view or download
-                  </div>
+              <div className="p-4 pt-3">
+                <div className="text-sm text-muted-foreground line-clamp-3">
+                  {result.snippet}
                 </div>
               </div>
             </CardContent>
@@ -144,49 +159,38 @@ export function SearchResults({ results: initialResults }: SearchResultsProps) {
 
       {/* Image Preview Modal */}
       <Dialog open={!!selectedImage} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <div className="flex items-center justify-between">
-              <DialogTitle>{selectedImage?.title}</DialogTitle>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleCloseModal}
-                className="text-gray-500 hover:text-gray-900"
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-          </DialogHeader>
-          
-          <div className="relative w-full h-[70vh] bg-gray-100">
-            {selectedImage && (
-              <Image
-                src={selectedImage.url}
-                alt={selectedImage.title}
-                fill
-                className="object-contain"
-                priority
-              />
+        <DialogContent className="max-w-none w-auto p-0 m-0 border-0 bg-transparent shadow-none">
+          <DialogTitle className="sr-only">Document Preview</DialogTitle>
+          <div className="relative">
+            {selectedImage ? (
+              <div className="relative max-h-[90vh] max-w-[90vw] flex items-center justify-center">
+                <Image
+                  src={selectedImage.url}
+                  alt={selectedImage.title}
+                  width={1920}
+                  height={1080}
+                  className="max-h-[90vh] w-auto object-contain"
+                  priority
+                  unoptimized={selectedImage.url.endsWith('.pdf')}
+                  onClick={handleCloseModal}
+                />
+                {isImageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center w-64 h-64 bg-background/80 rounded-lg">
+                <div className="text-center p-4">
+                  <FileImage className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-muted-foreground">No image available</p>
+                </div>
+              </div>
             )}
-          </div>
-          
-          <div className="flex justify-end p-4 border-t">
-            <Button 
-              onClick={() => selectedImage && handleDownload(selectedImage.url, selectedImage.title)}
-              disabled={isImageLoading}
-              className="flex items-center gap-2"
-            >
-              {isImageLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              Download Full Resolution
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
