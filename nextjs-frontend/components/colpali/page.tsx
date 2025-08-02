@@ -255,6 +255,13 @@ export default function ColPaliDashboard() {
           </header>
 
           <main className="flex-1 p-6 space-y-6">
+            <StatsCards 
+              indexedDocs={indexedDocs}
+              indexedImages={indexedImages}
+              storageUsed={storageUsed}
+              totalStorage={totalStorage}
+            />
+
             <Card className="border-0 shadow-sm">
               <CardContent className="p-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
