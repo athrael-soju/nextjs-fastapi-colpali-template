@@ -47,7 +47,7 @@ export async function removeItem(id: string) {
   if (error) {
     return { message: error };
   }
-  revalidatePath("/dashboard");
+  revalidatePath("/");
 }
 
 export async function addItem(prevState: {}, formData: FormData) {
@@ -84,5 +84,5 @@ export async function addItem(prevState: {}, formData: FormData) {
   if (error) {
     return { message: `${error.detail}` };
   }
-  redirect(`/dashboard`);
+  redirect(`/`);
 }
