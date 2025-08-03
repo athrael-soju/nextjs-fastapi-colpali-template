@@ -3,7 +3,6 @@
 import type * as React from "react"
 import Link from "next/link"
 import { Search, Upload, Database, User, LogOut, GalleryVerticalEnd } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoutButton } from "@/components/logout-button"
 
 import {
@@ -67,21 +66,18 @@ export function AppSidebar({ activeTab, ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <div className="flex items-center justify-between w-full">
-          <SidebarMenuButton
-            size="lg"
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-          >
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-yellow-500 text-white">
-              <GalleryVerticalEnd className="size-4" />
-            </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold text-sidebar-foreground">ColPali</span>
-              <span className="truncate text-xs text-sidebar-foreground/70">Document Search Platform</span>
-            </div>
-          </SidebarMenuButton>
-          <ThemeToggle />
-        </div>
+        <SidebarMenuButton
+          size="lg"
+          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!p-2"
+        >
+          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-r from-orange-500 to-yellow-500 text-white group-data-[collapsible=icon]:size-6">
+            <GalleryVerticalEnd className="size-4 group-data-[collapsible=icon]:size-3" />
+          </div>
+          <div className="grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-semibold text-sidebar-foreground">ColPali</span>
+            <span className="truncate text-xs text-sidebar-foreground/70">Document Search Platform</span>
+          </div>
+        </SidebarMenuButton>
       </SidebarHeader>
       <SidebarContent>
         {data.navMain.map((group) => (

@@ -24,16 +24,16 @@ export function UserProfile() {
 
   return (
     <div className="p-8 h-full overflow-auto bg-background">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Profile Settings</h1>
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold hf-text-gradient mb-2">Profile Settings</h1>
           <p className="text-muted-foreground">Manage your account information and preferences</p>
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="hf-card">
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
+              <CardTitle className="text-foreground">Profile Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-6">
@@ -100,9 +100,9 @@ export function UserProfile() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hf-card">
             <CardHeader>
-              <CardTitle>Security</CardTitle>
+              <CardTitle className="text-foreground">Security</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
