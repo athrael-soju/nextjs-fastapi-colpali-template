@@ -7,7 +7,7 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "ColPali Dashboard",
   description: "Document Search Platform",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -18,8 +18,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <NextTopLoader 
-          color="#f97316" 
+        <NextTopLoader
+          color="#f97316"
           showSpinner={false}
           height={3}
           shadow="0 0 10px #f97316,0 0 5px #f97316"
