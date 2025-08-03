@@ -3,6 +3,7 @@
 import type * as React from "react"
 import { Search, Upload, Database, User, LogOut, GalleryVerticalEnd } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LogoutButton } from "@/components/logout-button"
 
 import {
   Sidebar,
@@ -107,10 +108,12 @@ export function AppSidebar({ activeTab, onTabChange, ...props }: AppSidebarProps
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20">
-              <LogOut />
-              <span>Logout</span>
-            </SidebarMenuButton>
+            <LogoutButton>
+              <SidebarMenuButton className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20">
+                <LogOut />
+                <span>Logout</span>
+              </SidebarMenuButton>
+            </LogoutButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
