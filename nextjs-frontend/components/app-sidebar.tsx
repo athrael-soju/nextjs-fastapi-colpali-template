@@ -1,6 +1,7 @@
 "use client"
 
 import type * as React from "react"
+import Link from "next/link"
 import { Search, Upload, Database, User, LogOut, GalleryVerticalEnd } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoutButton } from "@/components/logout-button"
@@ -21,7 +22,6 @@ import {
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   activeTab: string
-  onTabChange: (tab: string) => void
 }
 
 const data = {
@@ -33,11 +33,13 @@ const data = {
           id: "search",
           title: "Search Documents",
           icon: Search,
+          href: "/dashboard/search",
         },
         {
           id: "upload",
           title: "Upload Documents",
           icon: Upload,
+          href: "/dashboard/upload",
         },
       ],
     },
@@ -48,18 +50,20 @@ const data = {
           id: "collection",
           title: "Collection Info",
           icon: Database,
+          href: "/dashboard/collection",
         },
         {
           id: "profile",
           title: "Profile",
           icon: User,
+          href: "/dashboard/profile",
         },
       ],
     },
   ],
 }
 
-export function AppSidebar({ activeTab, onTabChange, ...props }: AppSidebarProps) {
+export function AppSidebar({ activeTab, ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -90,13 +94,12 @@ export function AppSidebar({ activeTab, onTabChange, ...props }: AppSidebarProps
                     <SidebarMenuButton
                       asChild
                       isActive={activeTab === item.id}
-                      onClick={() => onTabChange(item.id)}
                       className="data-[active=true]:bg-orange-100 data-[active=true]:text-orange-700 dark:data-[active=true]:bg-orange-900/30 dark:data-[active=true]:text-orange-400 hover:bg-sidebar-accent text-sidebar-foreground"
                     >
-                      <div className="cursor-pointer">
+                      <Link href={item.href}>
                         <item.icon />
                         <span>{item.title}</span>
-                      </div>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
