@@ -109,21 +109,42 @@ class QdrantService:
 
         return image_embeddings_batch, pooled_by_rows_batch, pooled_by_columns_batch
     
-    def index_documents(self, images):
-        """Index documents in Qdrant"""
+    def index_documents(self, images, progress_callback=None, total_files=None, total_images=None):
+        """Index documents in Qdrant with batch processing and progress tracking"""
         batch_size = int(settings.BATCH_SIZE)
         
-        with tqdm(total=len(images), desc="Uploading progress") as pbar:
-            for i in range(0, len(images), batch_size):
+        total_images_count = len(images)
+        processed_images = 0
+        total_batches = (total_images_count + batch_size - 1) // batch_size
+        
+        with tqdm(total=total_images_count, desc="Processing batches") as pbar:
+            for batch_idx, i in enumerate(range(0, total_images_count, batch_size)):
                 batch = images[i : i + batch_size]
                 current_batch_size = len(batch)
+                current_batch_num = batch_idx + 1
+                
+                # Overall progress: 30% (conversion done) + 70% for batch processing
+                base_progress = 30
+                batch_progress_range = 70
+                overall_progress = base_progress + (processed_images / total_images_count) * batch_progress_range
+                
+                # Step 1: Embedding for this batch
+                if progress_callback:
+                    progress_callback("indexing", overall_progress, 
+                                    f"Batch {current_batch_num}/{total_batches}: Generating embeddings", 
+                                    total_files or 0, processed_images)
                 
                 try:
                     original_batch, pooled_by_rows_batch, pooled_by_columns_batch = self._embed_and_mean_pool_batch(batch)
                 except Exception as e:
                     raise Exception(f"Error during embed: {e}")
                 
-                # Store images in MinIO and upload each document individually
+                # Step 2: Store in MinIO for this batch
+                if progress_callback:
+                    progress_callback("storing", overall_progress + 5, 
+                                    f"Batch {current_batch_num}/{total_batches}: Storing images in MinIO", 
+                                    total_files or 0, processed_images)
+                
                 image_urls = []
                 if self.minio_service:
                     try:
@@ -135,6 +156,12 @@ class QdrantService:
                         raise Exception(f"Error storing images in MinIO for batch starting at {i}: {e}")
                 else:
                     raise Exception("MinIO service not available")
+                
+                # Step 3: Index in Qdrant for this batch
+                if progress_callback:
+                    progress_callback("indexing", overall_progress + 10, 
+                                    f"Batch {current_batch_num}/{total_batches}: Indexing in Qdrant", 
+                                    total_files or 0, processed_images)
                 
                 for j, (orig, rows, cols, image_url) in enumerate(zip(original_batch, pooled_by_rows_batch, pooled_by_columns_batch, image_urls)):
                     try:
@@ -162,8 +189,16 @@ class QdrantService:
                         )
                     except Exception as e:
                         raise Exception(f"Error during upsert for image {i + j}: {e}")
-                    
+                
+                processed_images += current_batch_size
                 pbar.update(current_batch_size)
+                
+                # Update progress after completing this batch
+                if progress_callback:
+                    final_progress = base_progress + (processed_images / total_images_count) * batch_progress_range
+                    progress_callback("indexing", final_progress, 
+                                    f"Completed batch {current_batch_num}/{total_batches}", 
+                                    total_files or 0, processed_images)
         
         return f"Uploaded and converted {len(images)} pages"
     

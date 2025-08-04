@@ -51,39 +51,35 @@ class ColPaliService:
         try:
             total_files = len(file_paths)
             
+            # Step 1: Convert ALL PDFs to images upfront (0-30%)
             if progress_callback:
-                progress_callback("converting", 10, "Converting PDFs to images", 0)
+                progress_callback("converting", 5, "Starting PDF conversion", 0)
             
-            # Convert PDFs to images
             images = convert_files_to_images(file_paths)
+            total_images = len(images)
             
             if progress_callback:
-                progress_callback("indexing", 40, "Processing with ColPali model", total_files // 2)
+                progress_callback("converting", 30, f"Converted all {total_files} PDFs to {total_images} images", total_files)
             
+            # Step 2: Process images in batches (30-100%)
             if settings.STORAGE_TYPE == "memory":
+                if progress_callback:
+                    progress_callback("indexing", 50, "Processing with ColPali model", total_files)
+                
                 # Store images for in-memory retrieval
                 self.images.extend(images)
-                
-                if progress_callback:
-                    progress_callback("indexing", 60, "Indexing with memory store", total_files // 2)
-                
                 result = self.storage_service.index_gpu(images, self.ds)
                 
-            elif settings.STORAGE_TYPE == "qdrant":
                 if progress_callback:
-                    progress_callback("indexing", 60, "Indexing with Qdrant", total_files // 2)
+                    progress_callback("completed", 100, "Successfully indexed documents", total_files, total_images)
                 
-                result = self.storage_service.index_documents(images)
-            
-            if progress_callback:
-                progress_callback("storing", 80, "Storing images in MinIO", total_files)
-            
-            # Simulate storing step (this might need actual MinIO integration)
-            import time
-            time.sleep(1)  # Simulate storage time
-            
-            if progress_callback:
-                progress_callback("completed", 100, "Successfully indexed documents", total_files, len(images))
+            elif settings.STORAGE_TYPE == "qdrant":
+                # Process images in batches: embed → store → index per batch
+                result = self.storage_service.index_documents(images, progress_callback, total_files, total_images)
+                
+                # Final completion
+                if progress_callback:
+                    progress_callback("completed", 100, "Successfully indexed documents", total_files, total_images)
             
             return {
                 "status": "success",
