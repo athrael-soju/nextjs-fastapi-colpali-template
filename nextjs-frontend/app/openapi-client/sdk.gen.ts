@@ -53,6 +53,12 @@ import type {
   IndexDocumentsData,
   IndexDocumentsError,
   IndexDocumentsResponse,
+  GetProgressStreamData,
+  GetProgressStreamError,
+  GetProgressStreamResponse,
+  GetProgressStatusData,
+  GetProgressStatusError,
+  GetProgressStatusResponse,
   SearchDocumentsData,
   SearchDocumentsError,
   SearchDocumentsResponse,
@@ -316,7 +322,7 @@ export const deleteItem = <ThrowOnError extends boolean = false>(
 
 /**
  * Index Documents
- * Index PDF documents for search
+ * Start document indexing with progress tracking
  */
 export const indexDocuments = <ThrowOnError extends boolean = false>(
   options: OptionsLegacyParser<IndexDocumentsData, ThrowOnError>,
@@ -333,6 +339,40 @@ export const indexDocuments = <ThrowOnError extends boolean = false>(
       ...options?.headers,
     },
     url: "/colpali/index",
+  });
+};
+
+/**
+ * Get Progress Stream
+ * Get real-time progress updates via Server-Sent Events
+ */
+export const getProgressStream = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<GetProgressStreamData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetProgressStreamResponse,
+    GetProgressStreamError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/colpali/progress/{task_id}",
+  });
+};
+
+/**
+ * Get Progress Status
+ * Get current progress status
+ */
+export const getProgressStatus = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<GetProgressStatusData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetProgressStatusResponse,
+    GetProgressStatusError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/colpali/progress/{task_id}/status",
   });
 };
 

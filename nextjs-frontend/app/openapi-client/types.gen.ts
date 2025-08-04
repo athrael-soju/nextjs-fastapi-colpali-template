@@ -52,12 +52,6 @@ export type HTTPValidationError = {
   detail?: Array<ValidationError>;
 };
 
-export type IndexResponse = {
-  status: string;
-  message: string;
-  indexed_pages?: number | null;
-};
-
 export type ItemCreate = {
   name: string;
   description?: string | null;
@@ -258,9 +252,29 @@ export type IndexDocumentsData = {
   body: Body_colpali_index_documents;
 };
 
-export type IndexDocumentsResponse = IndexResponse;
+export type IndexDocumentsResponse = unknown;
 
 export type IndexDocumentsError = HTTPValidationError;
+
+export type GetProgressStreamData = {
+  path: {
+    task_id: string;
+  };
+};
+
+export type GetProgressStreamResponse = unknown;
+
+export type GetProgressStreamError = HTTPValidationError;
+
+export type GetProgressStatusData = {
+  path: {
+    task_id: string;
+  };
+};
+
+export type GetProgressStatusResponse = unknown;
+
+export type GetProgressStatusError = HTTPValidationError;
 
 export type SearchDocumentsData = {
   body: SearchRequest;

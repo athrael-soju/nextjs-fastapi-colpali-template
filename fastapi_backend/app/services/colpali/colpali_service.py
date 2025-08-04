@@ -12,6 +12,7 @@ from .exceptions import (
     StorageServiceError,
     InvalidConfigurationError,
 )
+from app.services.progress_manager import ProgressManager, ProgressStatus
 
 
 class ColPaliService:
@@ -45,18 +46,40 @@ class ColPaliService:
                 raise
             raise StorageServiceError(f"Failed to initialize storage service: {str(e)}")
     
-    def index_documents(self, file_paths):
-        """Index PDF documents"""
+    def index_documents(self, file_paths, progress_callback=None):
+        """Index PDF documents with optional progress tracking"""
         try:
-            # Convert PDFs to images
-            images = convert_files_to_images(file_paths)
+            total_files = len(file_paths)
             
+            # Convert PDFs to images (quick operation, minimal progress feedback)
+            if progress_callback:
+                progress_callback("converting", 0, "Converting PDFs to images", 0)
+            
+            images = convert_files_to_images(file_paths)
+            total_images = len(images)
+            
+            if progress_callback:
+                progress_callback("converting", 0, f"Converted {total_files} PDFs to {total_images} images", total_files)
+            
+            # Process images in batches - progress based purely on batch completion (0-100%)
             if settings.STORAGE_TYPE == "memory":
+                if progress_callback:
+                    progress_callback("indexing", 0, "Processing with ColPali model", total_files)
+                
                 # Store images for in-memory retrieval
                 self.images.extend(images)
                 result = self.storage_service.index_gpu(images, self.ds)
+                
+                if progress_callback:
+                    progress_callback("completed", 100, "Successfully indexed documents", total_files, total_images)
+                
             elif settings.STORAGE_TYPE == "qdrant":
-                result = self.storage_service.index_documents(images)
+                # Process images in batches: embed → store → index per batch
+                result = self.storage_service.index_documents(images, progress_callback, total_files, total_images)
+                
+                # Final completion
+                if progress_callback:
+                    progress_callback("completed", 100, "Successfully indexed documents", total_files, total_images)
             
             return {
                 "status": "success",
@@ -64,6 +87,8 @@ class ColPaliService:
                 "indexed_pages": len(images)
             }
         except Exception as e:
+            if progress_callback:
+                progress_callback("error", 0, f"Error indexing documents: {str(e)}", 0, error_message=str(e))
             return {
                 "status": "error",
                 "message": f"Error indexing documents: {str(e)}"

@@ -6,10 +6,11 @@ import {
   searchDocuments, 
   getCollectionInfo, 
   clearCollection, 
-  healthCheck 
+  healthCheck,
+  getProgressStream,
+  getProgressStatus
 } from "@/app/clientService";
 import type {
-  IndexResponse,
   SearchResponse,
   CollectionInfoResponse,
   ClearResponse,
@@ -27,7 +28,7 @@ async function getAuthToken() {
   return token;
 }
 
-export async function indexDocumentsAction(files: File[]): Promise<IndexResponse> {
+export async function indexDocumentsAction(files: File[]): Promise<{task_id: string; status: string; message: string}> {
   const token = await getAuthToken();
   
   const { data, error } = await indexDocuments({
@@ -47,7 +48,7 @@ export async function indexDocumentsAction(files: File[]): Promise<IndexResponse
     throw new Error("No data received from index operation");
   }
 
-  return data;
+  return data as {task_id: string; status: string; message: string};
 }
 
 export async function searchDocumentsAction(
@@ -127,6 +128,44 @@ export async function healthCheckAction(): Promise<unknown> {
 
   if (error) {
     throw new Error(`Health check failed: ${JSON.stringify(error)}`);
+  }
+
+  return data;
+}
+
+export async function getProgressStreamAction(taskId: string): Promise<any> {
+  const token = await getAuthToken();
+  
+  const { data, error } = await getProgressStream({
+    path: {
+      task_id: taskId,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Progress stream failed: ${JSON.stringify(error)}`);
+  }
+
+  return data;
+}
+
+export async function getProgressStatusAction(taskId: string): Promise<any> {
+  const token = await getAuthToken();
+  
+  const { data, error } = await getProgressStatus({
+    path: {
+      task_id: taskId,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Progress status failed: ${JSON.stringify(error)}`);
   }
 
   return data;

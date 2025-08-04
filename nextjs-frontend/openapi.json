@@ -801,7 +801,7 @@
           "colpali"
         ],
         "summary": "Index Documents",
-        "description": "Index PDF documents for search",
+        "description": "Start document indexing with progress tracking",
         "operationId": "index_documents",
         "requestBody": {
           "content": {
@@ -818,9 +818,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IndexResponse"
-                }
+                "schema": {}
               }
             }
           },
@@ -840,6 +838,98 @@
             "OAuth2PasswordBearer": []
           }
         ]
+      }
+    },
+    "/colpali/progress/{task_id}": {
+      "get": {
+        "tags": [
+          "colpali"
+        ],
+        "summary": "Get Progress Stream",
+        "description": "Get real-time progress updates via Server-Sent Events",
+        "operationId": "get_progress_stream",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/colpali/progress/{task_id}/status": {
+      "get": {
+        "tags": [
+          "colpali"
+        ],
+        "summary": "Get Progress Status",
+        "description": "Get current progress status",
+        "operationId": "get_progress_status",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/colpali/search": {
@@ -1220,35 +1310,6 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
-      },
-      "IndexResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "indexed_pages": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Indexed Pages"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status",
-          "message"
-        ],
-        "title": "IndexResponse"
       },
       "ItemCreate": {
         "properties": {
