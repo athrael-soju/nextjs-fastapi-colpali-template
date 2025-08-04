@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Upload, FileText, X, CheckCircle, AlertCircle, ImageIcon, Database } from "lucide-react"
 import { useDropzone } from "react-dropzone"
-import { indexDocumentsAction } from "./actions/colpali-action"
+import { indexDocumentsAction, getProgressStatusAction } from "./actions/colpali-action"
 
 interface UploadedFile {
   id: string
@@ -65,35 +65,29 @@ const UPLOAD_STEPS: ProgressStep[] = [
 export function DocumentUpload() {
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
-  const eventSourceRef = useRef<EventSource | null>(null)
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const currentTaskRef = useRef<string | null>(null)
 
-  // Cleanup event source on unmount
+  // Cleanup progress polling on unmount
   useEffect(() => {
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close()
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current)
       }
     }
   }, [])
 
-  const connectToProgressStream = (taskId: string, fileIds: string[]) => {
-    // Close existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close()
+  const trackProgress = async (taskId: string, fileIds: string[]) => {
+    // Clear existing interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
     }
 
-    const eventSource = new EventSource(`/api/colpali/progress/${taskId}`, {
-      withCredentials: true
-    })
-    eventSourceRef.current = eventSource
     currentTaskRef.current = taskId
 
-    eventSource.onmessage = (event) => {
+    const pollProgress = async () => {
       try {
-        const data: ProgressEvent = JSON.parse(event.data)
-        
-        if (data.type === "heartbeat") return
+        const data = await getProgressStatusAction(taskId)
         
         // Update all files in this batch with the current progress
         setFiles((prev) => prev.map((f) => {
@@ -101,8 +95,8 @@ export function DocumentUpload() {
             return {
               ...f,
               status: data.status as UploadedFile['status'],
-              progress: Math.round(data.progress),
-              currentStep: data.current_step,
+              progress: Math.round(data.progress || 0),
+              currentStep: data.current_step || "Processing...",
               indexedPages: data.indexed_pages,
               error: data.error_message
             }
@@ -110,33 +104,40 @@ export function DocumentUpload() {
           return f
         }))
         
-        // Close connection when completed or error
+        // Stop polling when completed or error
         if (data.status === 'completed' || data.status === 'error') {
-          eventSource.close()
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current)
+          }
           setIsUploading(false)
         }
       } catch (error) {
-        console.error('Failed to parse progress data:', error)
+        console.error('Failed to get progress status:', error)
+        
+        // Mark files as error on API failure
+        setFiles((prev) => prev.map((f) => {
+          if (fileIds.includes(f.id)) {
+            return {
+              ...f,
+              status: "error",
+              error: "Failed to track progress"
+            }
+          }
+          return f
+        }))
+        
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current)
+        }
+        setIsUploading(false)
       }
     }
 
-    eventSource.onerror = (error) => {
-      console.error('EventSource failed:', error)
-      eventSource.close()
-      setIsUploading(false)
-      
-      // Mark files as error
-      setFiles((prev) => prev.map((f) => {
-        if (fileIds.includes(f.id)) {
-          return {
-            ...f,
-            status: "error",
-            error: "Connection to progress stream failed"
-          }
-        }
-        return f
-      }))
-    }
+    // Start polling immediately
+    await pollProgress()
+    
+    // Continue polling every 2 seconds
+    progressIntervalRef.current = setInterval(pollProgress, 2000)
   }
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -160,8 +161,8 @@ export function DocumentUpload() {
       const response = await indexDocumentsAction(acceptedFiles)
       
       if (response.status === "started") {
-        // Connect to progress stream
-        connectToProgressStream(response.task_id, fileIds)
+        // Track progress using SDK polling
+        trackProgress(response.task_id, fileIds)
       } else {
         throw new Error(response.message || "Failed to start indexing")
       }

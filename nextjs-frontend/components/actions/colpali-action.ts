@@ -6,10 +6,11 @@ import {
   searchDocuments, 
   getCollectionInfo, 
   clearCollection, 
-  healthCheck 
+  healthCheck,
+  getProgressStream,
+  getProgressStatus
 } from "@/app/clientService";
 import type {
-  IndexResponse,
   SearchResponse,
   CollectionInfoResponse,
   ClearResponse,
@@ -127,6 +128,44 @@ export async function healthCheckAction(): Promise<unknown> {
 
   if (error) {
     throw new Error(`Health check failed: ${JSON.stringify(error)}`);
+  }
+
+  return data;
+}
+
+export async function getProgressStreamAction(taskId: string): Promise<any> {
+  const token = await getAuthToken();
+  
+  const { data, error } = await getProgressStream({
+    path: {
+      task_id: taskId,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Progress stream failed: ${JSON.stringify(error)}`);
+  }
+
+  return data;
+}
+
+export async function getProgressStatusAction(taskId: string): Promise<any> {
+  const token = await getAuthToken();
+  
+  const { data, error } = await getProgressStatus({
+    path: {
+      task_id: taskId,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Progress status failed: ${JSON.stringify(error)}`);
   }
 
   return data;
