@@ -123,14 +123,15 @@ class QdrantService:
                 current_batch_size = len(batch)
                 current_batch_num = batch_idx + 1
                 
-                # Overall progress: 30% (conversion done) + 70% for batch processing
-                base_progress = 30
-                batch_progress_range = 70
-                overall_progress = base_progress + (processed_images / total_images_count) * batch_progress_range
+                # Calculate progress based purely on batch completion (0-100%)
+                # Each batch gets equal portion of the full 100% range
+                progress_per_batch = 100.0 / total_batches
+                batch_start_progress = batch_idx * progress_per_batch
                 
-                # Step 1: Embedding for this batch
+                # Step 1: Embedding for this batch (0-40% of this batch's progress)
+                embedding_progress = batch_start_progress + (progress_per_batch * 0.0)
                 if progress_callback:
-                    progress_callback("indexing", overall_progress, 
+                    progress_callback("indexing", embedding_progress, 
                                     f"Batch {current_batch_num}/{total_batches}: Generating embeddings", 
                                     total_files or 0, processed_images)
                 
@@ -139,9 +140,10 @@ class QdrantService:
                 except Exception as e:
                     raise Exception(f"Error during embed: {e}")
                 
-                # Step 2: Store in MinIO for this batch
+                # Step 2: Store in MinIO for this batch (40-70% of this batch's progress)
+                storing_progress = batch_start_progress + (progress_per_batch * 0.4)
                 if progress_callback:
-                    progress_callback("storing", overall_progress + 5, 
+                    progress_callback("storing", storing_progress, 
                                     f"Batch {current_batch_num}/{total_batches}: Storing images in MinIO", 
                                     total_files or 0, processed_images)
                 
@@ -157,9 +159,10 @@ class QdrantService:
                 else:
                     raise Exception("MinIO service not available")
                 
-                # Step 3: Index in Qdrant for this batch
+                # Step 3: Index in Qdrant for this batch (70-90% of this batch's progress)
+                indexing_progress = batch_start_progress + (progress_per_batch * 0.7)
                 if progress_callback:
-                    progress_callback("indexing", overall_progress + 10, 
+                    progress_callback("indexing", indexing_progress, 
                                     f"Batch {current_batch_num}/{total_batches}: Indexing in Qdrant", 
                                     total_files or 0, processed_images)
                 
@@ -193,10 +196,10 @@ class QdrantService:
                 processed_images += current_batch_size
                 pbar.update(current_batch_size)
                 
-                # Update progress after completing this batch
+                # Update progress after completing this batch (90-100% of this batch's progress)
+                batch_completion_progress = batch_start_progress + (progress_per_batch * 0.9)
                 if progress_callback:
-                    final_progress = base_progress + (processed_images / total_images_count) * batch_progress_range
-                    progress_callback("indexing", final_progress, 
+                    progress_callback("indexing", batch_completion_progress, 
                                     f"Completed batch {current_batch_num}/{total_batches}", 
                                     total_files or 0, processed_images)
         

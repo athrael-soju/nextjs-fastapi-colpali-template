@@ -51,20 +51,20 @@ class ColPaliService:
         try:
             total_files = len(file_paths)
             
-            # Step 1: Convert ALL PDFs to images upfront (0-30%)
+            # Convert PDFs to images (quick operation, minimal progress feedback)
             if progress_callback:
-                progress_callback("converting", 5, "Starting PDF conversion", 0)
+                progress_callback("converting", 0, "Converting PDFs to images", 0)
             
             images = convert_files_to_images(file_paths)
             total_images = len(images)
             
             if progress_callback:
-                progress_callback("converting", 30, f"Converted all {total_files} PDFs to {total_images} images", total_files)
+                progress_callback("converting", 0, f"Converted {total_files} PDFs to {total_images} images", total_files)
             
-            # Step 2: Process images in batches (30-100%)
+            # Process images in batches - progress based purely on batch completion (0-100%)
             if settings.STORAGE_TYPE == "memory":
                 if progress_callback:
-                    progress_callback("indexing", 50, "Processing with ColPali model", total_files)
+                    progress_callback("indexing", 0, "Processing with ColPali model", total_files)
                 
                 # Store images for in-memory retrieval
                 self.images.extend(images)
