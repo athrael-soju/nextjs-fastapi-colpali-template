@@ -27,7 +27,7 @@ async function getAuthToken() {
   return token;
 }
 
-export async function indexDocumentsAction(files: File[]): Promise<IndexResponse> {
+export async function indexDocumentsAction(files: File[]): Promise<{task_id: string; status: string; message: string}> {
   const token = await getAuthToken();
   
   const { data, error } = await indexDocuments({
@@ -47,7 +47,7 @@ export async function indexDocumentsAction(files: File[]): Promise<IndexResponse
     throw new Error("No data received from index operation");
   }
 
-  return data;
+  return data as {task_id: string; status: string; message: string};
 }
 
 export async function searchDocumentsAction(

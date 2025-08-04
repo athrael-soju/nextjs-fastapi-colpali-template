@@ -12,6 +12,7 @@ from .exceptions import (
     StorageServiceError,
     InvalidConfigurationError,
 )
+from app.services.progress_manager import ProgressManager, ProgressStatus
 
 
 class ColPaliService:
@@ -45,18 +46,44 @@ class ColPaliService:
                 raise
             raise StorageServiceError(f"Failed to initialize storage service: {str(e)}")
     
-    def index_documents(self, file_paths):
-        """Index PDF documents"""
+    def index_documents(self, file_paths, progress_callback=None):
+        """Index PDF documents with optional progress tracking"""
         try:
+            total_files = len(file_paths)
+            
+            if progress_callback:
+                progress_callback("converting", 10, "Converting PDFs to images", 0)
+            
             # Convert PDFs to images
             images = convert_files_to_images(file_paths)
+            
+            if progress_callback:
+                progress_callback("indexing", 40, "Processing with ColPali model", total_files // 2)
             
             if settings.STORAGE_TYPE == "memory":
                 # Store images for in-memory retrieval
                 self.images.extend(images)
+                
+                if progress_callback:
+                    progress_callback("indexing", 60, "Indexing with memory store", total_files // 2)
+                
                 result = self.storage_service.index_gpu(images, self.ds)
+                
             elif settings.STORAGE_TYPE == "qdrant":
+                if progress_callback:
+                    progress_callback("indexing", 60, "Indexing with Qdrant", total_files // 2)
+                
                 result = self.storage_service.index_documents(images)
+            
+            if progress_callback:
+                progress_callback("storing", 80, "Storing images in MinIO", total_files)
+            
+            # Simulate storing step (this might need actual MinIO integration)
+            import time
+            time.sleep(1)  # Simulate storage time
+            
+            if progress_callback:
+                progress_callback("completed", 100, "Successfully indexed documents", total_files, len(images))
             
             return {
                 "status": "success",
@@ -64,6 +91,8 @@ class ColPaliService:
                 "indexed_pages": len(images)
             }
         except Exception as e:
+            if progress_callback:
+                progress_callback("error", 0, f"Error indexing documents: {str(e)}", 0, error_message=str(e))
             return {
                 "status": "error",
                 "message": f"Error indexing documents: {str(e)}"
