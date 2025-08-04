@@ -1,6 +1,5 @@
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
-/** @type {import('next').NextConfig} */
- 
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -8,11 +7,38 @@ const nextConfig = {
       bodySizeLimit: '100mb',
     },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/colpali/image/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '9000',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+    // Enable blur-up placeholder loading
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Allow all domains in development
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.plugins.push(
         new ForkTsCheckerWebpackPlugin({
-          async: true, // Run type checking synchronously to block the build
+          async: true,
           typescript: {
             configOverwrite: {
               compilerOptions: {

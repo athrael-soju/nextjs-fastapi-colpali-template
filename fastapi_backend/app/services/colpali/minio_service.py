@@ -4,8 +4,9 @@ import uuid
 from datetime import timedelta
 from minio import Minio
 from minio.error import S3Error
-from PIL import Image
+from PIL import Image, ImageOps
 import logging
+from typing import Tuple
 
 from app.config import settings
 
@@ -56,43 +57,90 @@ class MinioService:
         except S3Error as e:
             raise Exception(f"Error creating bucket {self.bucket_name}: {e}")
 
-    def store_image(self, image: Image.Image, image_id: str = None) -> str:
+    def _generate_thumbnail(self, image: Image.Image, size: Tuple[int, int] = (300, 200)) -> Image.Image:
+        """Generate a thumbnail from a PIL Image
+        
+        Args:
+            image: PIL Image to generate thumbnail from
+            size: Target size as (width, height)
+            
+        Returns:
+            PIL.Image: Thumbnail image
         """
-        Store a PIL Image in MinIO and return the object URL
+        # Create a thumbnail that maintains aspect ratio
+        img = image.copy()
+        img.thumbnail(size, Image.Resampling.LANCZOS)
+        
+        # Create a new image with white background
+        thumb = Image.new('RGB', size, (255, 255, 255))
+        
+        # Calculate position to center the thumbnail
+        x = (size[0] - img.size[0]) // 2
+        y = (size[1] - img.size[1]) // 2
+        
+        # Paste the thumbnail onto the white background
+        thumb.paste(img, (x, y))
+        return thumb
+
+    def store_image(self, image: Image.Image, image_id: str = None, generate_thumbnail: bool = True) -> dict:
+        """
+        Store a PIL Image in MinIO and optionally generate/store a thumbnail
 
         Args:
             image: PIL Image object to store
             image_id: Optional custom ID for the image, generates UUID if not provided
+            generate_thumbnail: Whether to generate and store a thumbnail
 
         Returns:
-            str: URL to access the stored image
+            dict: Dictionary containing full image URL and thumbnail URL if generated
         """
         if image_id is None:
             image_id = str(uuid.uuid4())
 
         try:
-            # Convert PIL Image to bytes
-            img_buffer = io.BytesIO()
-            # Save as PNG to preserve quality
-            image.save(img_buffer, format="PNG")
-            img_buffer.seek(0)
+            # Store full image
+            full_img_buffer = io.BytesIO()
+            image.save(full_img_buffer, format="PNG")
+            full_img_buffer.seek(0)
 
-            # Generate object name with PNG extension
-            object_name = f"images/{image_id}.png"
-
-            # Upload to MinIO
+            full_object_name = f"images/{image_id}.png"
             self.client.put_object(
                 self.bucket_name,
-                object_name,
-                img_buffer,
-                length=img_buffer.getbuffer().nbytes,
+                full_object_name,
+                full_img_buffer,
+                length=full_img_buffer.getbuffer().nbytes,
                 content_type="image/png",
             )
-
-            # Return the object URL
-            url = f"{settings.MINIO_URL}/{self.bucket_name}/{object_name}"
-            logger.info(f"Image stored successfully: {url}")
-            return url
+            full_url = f"{settings.MINIO_URL}/{self.bucket_name}/{full_object_name}"
+            
+            result = {
+                'id': image_id,
+                'url': full_url,
+                'thumbnail_url': None
+            }
+            
+            # Generate and store thumbnail if requested
+            if generate_thumbnail:
+                try:
+                    thumbnail = self._generate_thumbnail(image)
+                    thumb_buffer = io.BytesIO()
+                    thumbnail.save(thumb_buffer, format="PNG")
+                    thumb_buffer.seek(0)
+                    
+                    thumb_object_name = f"thumbs/{image_id}.png"
+                    self.client.put_object(
+                        self.bucket_name,
+                        thumb_object_name,
+                        thumb_buffer,
+                        length=thumb_buffer.getbuffer().nbytes,
+                        content_type="image/png",
+                    )
+                    result['thumbnail_url'] = f"{settings.MINIO_URL}/{self.bucket_name}/{thumb_object_name}"
+                except Exception as e:
+                    logger.error(f"Error generating thumbnail for {image_id}: {e}")
+            
+            logger.info(f"Image stored successfully: {result}")
+            return result
 
         except Exception as e:
             logger.error(f"Error storing image {image_id}: {e}")

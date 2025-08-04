@@ -1,8 +1,11 @@
 import os
 import tempfile
+import io
+import base64
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from PIL import Image
 
 from app.users import current_active_user
 from app.database import User
@@ -143,10 +146,36 @@ async def clear_collection(
         raise HTTPException(status_code=500, detail=f"Error clearing collection: {str(e)}")
 
 
+@router.get("/image/{image_id}")
+async def get_search_image(
+    image_id: str,
+    service: ColPaliService = Depends(get_colpali_service),
+):
+    """Get search result image by ID"""
+    try:
+        image = service.get_image_by_id(image_id)
+        if image is None:
+            raise HTTPException(status_code=404, detail="Image not found")
+        
+        # Convert PIL Image to bytes
+        img_io = io.BytesIO()
+        image.save(img_io, format='PNG')
+        img_io.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(img_io.read()),
+            media_type="image/png"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving image: {str(e)}")
+
+
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
     return JSONResponse(
-        status_code=200,
-        content={"status": "healthy", "service": "ColPali API"}
+        content={
+            "status": "healthy",
+            "message": "ColPali service is running"
+        }
     )

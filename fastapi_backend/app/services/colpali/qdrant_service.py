@@ -129,8 +129,8 @@ class QdrantService:
                     try:
                         for j, image in enumerate(batch):
                             image_id = str(uuid.uuid4())
-                            image_url = self.minio_service.store_image(image, image_id)
-                            image_urls.append(image_url)
+                            storage_result = self.minio_service.store_image(image, image_id)
+                            image_urls.append(storage_result)
                     except Exception as e:
                         raise Exception(f"Error storing images in MinIO for batch starting at {i}: {e}")
                 else:
@@ -145,7 +145,8 @@ class QdrantService:
                         payload = {
                             "index": i + j,
                             "page": f"Page {i + j}",
-                            "image_url": image_url,
+                            "image_url": image_url['url'],
+                            "thumbnail_url": image_url.get('thumbnail_url', image_url['url']),
                             "document_id": doc_id
                         }
                         
@@ -215,13 +216,14 @@ class QdrantService:
                 try:
                     # Get image URL from metadata
                     image_url = point.payload.get('image_url')
+                    thumbnail_url = point.payload.get('thumbnail_url', image_url)
                     page_info = point.payload.get('page', f"Page {point.payload.get('index', i)}")
                     # Get image URL from metadata
                     if image_url and self.minio_service:
                         image_id = image_url.split('/')[-1].replace('.png', '')
                         # Retrieve image from MinIO
                         image = self.minio_service.get_image(image_id)
-                        results.append((image, page_info))
+                        results.append((image, page_info, thumbnail_url))
                     else:
                         raise Exception(f"Cannot retrieve image for point {i}. Image URL: {image_url}, MinIO available: {self.minio_service is not None}")
                         
