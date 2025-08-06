@@ -107,8 +107,8 @@ export function DocumentSearch() {
         // Full-size image URL - convert to absolute
         const fullImageUrl = makeAbsoluteUrl(result.image_url)
 
-        // Thumbnail URL - convert to absolute, fallback to full image URL
-        const thumbnailUrl = makeAbsoluteUrl(result.thumbnail_url) || fullImageUrl
+        // Thumbnail URL - convert to absolute
+        const thumbnailUrl = makeAbsoluteUrl(result.thumbnail_url)
 
         return {
           id: `result_${result.rank}`,
@@ -276,27 +276,50 @@ export function DocumentSearch() {
                           {message.images && (
                             <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
                               {message.images.map((result) => (
-                                <div key={result.id} className="relative group cursor-pointer" onClick={() => handleViewImage(result)}>
-                                  <img
-                                    src={result.thumbnail_url}
-                                    alt={`${result.document_name} - Page ${result.page_number}`}
-                                    className="w-full h-32 object-cover rounded-lg border border-border hover:border-primary transition-colors"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.src = "/placeholder.svg";
-                                    }}
-                                  />
-                                  <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity text-center text-white text-xs p-2">
-                                      <p className="font-medium">{result.document_name}</p>
-                                      <p>Page {result.page_number}</p>
-                                      <Badge variant="secondary" className="mt-1">
-                                        {Math.round(result.score * 100)}%
+                                <Card key={result.id} className="hf-card group">
+                                  <CardContent className="p-3">
+                                    <div className="relative mb-3">
+                                      <img
+                                        src={result.thumbnail_url}
+                                        alt={`${result.document_name} - Page ${result.page_number}`}
+                                        className="w-full h-32 object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={() => handleViewImage(result)}
+                                      />
+                                      <Badge
+                                        variant="secondary"
+                                        className="absolute top-2 right-2 bg-white/90 text-green-600 border-green-600 dark:bg-black/90 dark:text-green-400"
+                                      >
+                                        {Math.round(result.score * 100)}% match
                                       </Badge>
-                                      <p className="text-xs opacity-75 mt-1">Click to view</p>
                                     </div>
-                                  </div>
-                                </div>
+                                    <div className="space-y-2">
+                                      <h3 className="font-semibold text-xs text-card-foreground line-clamp-2">
+                                        {result.document_name}
+                                      </h3>
+                                      <p className="text-xs text-muted-foreground">Page {result.page_number}</p>
+                                      <div className="flex gap-1 pt-1">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex-1 text-xs py-1 h-7 bg-transparent hover:bg-primary/10"
+                                          onClick={() => handleViewImage(result)}
+                                        >
+                                          <ImageIcon className="h-3 w-3 mr-1" />
+                                          View
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex-1 text-xs py-1 h-7 bg-transparent hover:bg-primary/10"
+                                          onClick={() => handleDownloadImage(result)}
+                                        >
+                                          <Download className="h-3 w-3 mr-1" />
+                                          Download
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
                               ))}
                             </div>
                           )}
