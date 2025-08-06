@@ -94,15 +94,21 @@ export function DocumentSearch() {
         const documentName = pageInfoParts[0] || "Unknown Document"
         const pageNumber = pageInfoParts[1] ? parseInt(pageInfoParts[1]) : 1
 
-        // Construct image URLs - separate thumbnail and full-size
+        // Construct image URLs - handle both relative and absolute URLs
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-        const backendImageUrl = `${baseUrl}/colpali/image/img_${result.rank}`
+        
+        // Convert relative URLs to absolute URLs
+        const makeAbsoluteUrl = (url: string | null | undefined): string => {
+          if (!url) return ''
+          if (url.startsWith('http')) return url // Already absolute
+          return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}` // Make absolute
+        }
 
-        // Full-size image URL - always use image_url
-        let fullImageUrl = result.image_url || backendImageUrl
+        // Full-size image URL - convert to absolute
+        const fullImageUrl = makeAbsoluteUrl(result.image_url)
 
-        // Thumbnail URL - always use thumbnail_url
-        let thumbnailUrl = result.thumbnail_url || `${backendImageUrl}?thumbnail=true`
+        // Thumbnail URL - convert to absolute, fallback to full image URL
+        const thumbnailUrl = makeAbsoluteUrl(result.thumbnail_url) || fullImageUrl
 
         return {
           id: `result_${result.rank}`,
@@ -280,7 +286,7 @@ export function DocumentSearch() {
                                       target.src = "/placeholder.svg";
                                     }}
                                   />
-                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
+                                  <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity text-center text-white text-xs p-2">
                                       <p className="font-medium">{result.document_name}</p>
                                       <p>Page {result.page_number}</p>
