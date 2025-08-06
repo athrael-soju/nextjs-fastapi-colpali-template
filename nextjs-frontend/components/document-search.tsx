@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Search, ImageIcon, Download, Bot, User, Send, AlertCircle, X } from "lucide-react"
-import { searchDocumentsAction } from "@/components/actions/colpali-action"
+import { searchDocumentsAction, chatWithImagesAction } from "@/components/actions/colpali-action"
 import type { SearchResponse, SearchResult as APISearchResult } from "@/app/clientService"
 
 interface SearchResult {
@@ -41,6 +41,8 @@ export function DocumentSearch() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<SearchResult | null>(null)
+  const [apiKey, setApiKey] = useState("")
+  const [showApiKey, setShowApiKey] = useState(false)
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -81,7 +83,7 @@ export function DocumentSearch() {
 
     try {
       // Call the server action with proper authentication
-      const searchResponse = await searchDocumentsAction(query, topK)
+      const searchResponse = await searchDocumentsAction(query, topK, apiKey.trim() || undefined)
 
       if (searchResponse.status === "error") {
         throw new Error(searchResponse.message || "Search failed")
@@ -123,25 +125,98 @@ export function DocumentSearch() {
 
       setResults(transformedResults)
 
-      // Generate LLM response if enabled and AI response is available
-      if (llmEnabled) {
+      // Generate LLM response if enabled
+      if (llmEnabled && transformedResults.length > 0) {
         setIsGenerating(true)
-
-        // Use AI response from backend if available, otherwise generate a default response
-        const aiResponseContent = searchResponse.ai_response ||
-          `Based on your search for "${query}", I found ${transformedResults.length} relevant document pages. ${transformedResults.length > 0 ? `The most relevant result is from "${transformedResults[0].document_name}" on page ${transformedResults[0].page_number} with a ${Math.round(transformedResults[0].score * 100)}% match.` : "No relevant documents were found for this query."}`
-
-        setTimeout(() => {
+        
+        // Extract image IDs for chat
+        const imageIds = transformedResults.map(result => {
+          // Extract image ID from the image_url (e.g., "/colpali/image/{id}")
+          const match = result.image_url.match(/\/colpali\/image\/(.+)$/);
+          return match ? match[1] : result.image_id;
+        });
+        
+        try {
+          // Create initial assistant message
+          const assistantMessageId = (Date.now() + 1).toString();
           const assistantMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
+            id: assistantMessageId,
             type: "assistant",
-            content: aiResponseContent,
+            content: "",
             timestamp: new Date(),
             images: transformedResults,
-          }
-          setChatMessages((prev) => [...prev, assistantMessage])
-          setIsGenerating(false)
-        }, 1000)
+          };
+          setChatMessages((prev) => [...prev, assistantMessage]);
+          
+          // Start streaming chat
+          chatWithImagesAction(query, imageIds, apiKey.trim() || undefined).then(async (stream) => {
+            const reader = stream.getReader();
+            const decoder = new TextDecoder();
+            
+            let content = "";
+            let buffer = "";
+            
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              const chunk = decoder.decode(value, { stream: true });
+              buffer += chunk;
+              
+              // Process line by line
+              let newlineIndex;
+              while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.slice(0, newlineIndex).trim();
+                buffer = buffer.slice(newlineIndex + 1);
+                
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') {
+                    setIsGenerating(false);
+                    break;
+                  } else if (data.startsWith('Error:')) {
+                    throw new Error(data);
+                  } else if (data) { // Don't trim here as spaces are important
+                    content += data;
+                    // Update the assistant message with streaming content
+                    setChatMessages((prev) => 
+                      prev.map(msg => 
+                        msg.id === assistantMessageId 
+                          ? { ...msg, content }
+                          : msg
+                      )
+                    );
+                  }
+                }
+              }
+            }
+            
+            setIsGenerating(false);
+          }).catch((streamError) => {
+            console.error("Streaming error:", streamError);
+            // Update with error message
+            setChatMessages((prev) => 
+              prev.map(msg => 
+                msg.id === assistantMessageId 
+                  ? { ...msg, content: `I found ${transformedResults.length} relevant document pages for your search "${query}". Please check your API key and try again.` }
+                  : msg
+              )
+            );
+            setIsGenerating(false);
+          });
+        } catch (error) {
+          console.error("Chat error:", error);
+          // Fallback to a simple message
+          const errorMessage: ChatMessage = {
+            id: (Date.now() + 2).toString(),
+            type: "assistant",
+            content: `I found ${transformedResults.length} relevant document pages for your search "${query}". You can view the images below.`,
+            timestamp: new Date(),
+            images: transformedResults,
+          };
+          setChatMessages((prev) => [...prev, errorMessage]);
+          setIsGenerating(false);
+        }
       }
     } catch (err) {
       console.error("Search error:", err)
@@ -355,22 +430,49 @@ export function DocumentSearch() {
           {/* Input Area */}
           <Card className="hf-card">
             <CardContent className="p-4">
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Input
-                    placeholder="Ask a question about your documents..."
-                    value={query}
-                    onChange={(e) => {
-                      setQuery(e.target.value)
-                      if (error) setError(null)
-                    }}
-                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                    className="text-lg"
-                  />
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Ask a question about your documents..."
+                      value={query}
+                      onChange={(e) => {
+                        setQuery(e.target.value)
+                        if (error) setError(null)
+                      }}
+                      onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                      className="text-lg"
+                    />
+                  </div>
+                  <Button onClick={handleSendMessage} disabled={isSearching || !query.trim()} className="hf-button">
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button onClick={handleSendMessage} disabled={isSearching || !query.trim()} className="hf-button">
-                  <Send className="h-4 w-4" />
-                </Button>
+                
+                {llmEnabled && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="text-xs"
+                    >
+                      {showApiKey ? 'Hide' : 'Set'} API Key (Optional)
+                    </Button>
+                    {showApiKey && (
+                      <div className="flex-1">
+                        <Input
+                          type="password"
+                          placeholder="Enter your OpenAI API key (optional - falls back to server key)"
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {error && (

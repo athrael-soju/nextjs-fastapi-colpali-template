@@ -932,6 +932,51 @@
         }
       }
     },
+    "/colpali/chat": {
+      "post": {
+        "tags": [
+          "colpali"
+        ],
+        "summary": "Chat With Images",
+        "description": "Chat with specific images using streaming response",
+        "operationId": "chat_with_images",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
     "/colpali/search": {
       "post": {
         "tags": [
@@ -1190,6 +1235,38 @@
           "files"
         ],
         "title": "Body_colpali-index_documents"
+      },
+      "ChatRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "image_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Image Ids"
+          },
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "image_ids"
+        ],
+        "title": "ChatRequest"
       },
       "ClearResponse": {
         "properties": {

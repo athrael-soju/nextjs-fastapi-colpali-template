@@ -8,7 +8,8 @@ import {
   clearCollection, 
   healthCheck,
   getProgressStream,
-  getProgressStatus
+  getProgressStatus,
+  chatWithImages,
 } from "@/app/clientService";
 import type {
   SearchResponse,
@@ -169,4 +170,47 @@ export async function getProgressStatusAction(taskId: string): Promise<any> {
   }
 
   return data;
+}
+
+export async function chatWithImagesAction(
+  query: string,
+  imageIds: string[],
+  apiKey?: string
+): Promise<ReadableStream<Uint8Array>> {
+  const token = await getAuthToken();
+  
+  const chatRequest = {
+    query,
+    image_ids: imageIds,
+    api_key: apiKey,
+  };
+
+  // Use fetch directly for streaming support instead of the OpenAPI client
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  const response = await fetch(`${baseUrl}/colpali/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(chatRequest),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage;
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.detail || errorText;
+    } catch {
+      errorMessage = errorText;
+    }
+    throw new Error(`Chat request failed: ${errorMessage}`);
+  }
+
+  if (!response.body) {
+    throw new Error('No response body received from streaming endpoint');
+  }
+
+  return response.body;
 }

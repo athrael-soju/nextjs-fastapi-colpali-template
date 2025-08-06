@@ -17,6 +17,8 @@ from app.schemas import (
     IndexResponse,
     CollectionInfoResponse,
     ClearResponse,
+    ChatRequest,
+    ChatResponse,
 )
 from app.services.colpali.colpali_service import ColPaliService
 from app.services.progress_manager import progress_manager, ProgressStatus
@@ -142,6 +144,71 @@ async def get_progress_status(task_id: str, user: User = Depends(current_active_
         raise HTTPException(status_code=404, detail="Task not found")
     
     return JSONResponse(progress.to_dict())
+
+
+@router.post("/chat")
+async def chat_with_images(
+    request: ChatRequest,
+    user: User = Depends(current_active_user),
+    service: ColPaliService = Depends(get_colpali_service),
+):
+    """Chat with specific images using streaming response"""
+    if not request.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    
+    if not request.image_ids:
+        raise HTTPException(status_code=400, detail="At least one image ID is required")
+    
+    try:
+        result = service.chat_with_images(
+            query=request.query,
+            image_ids=request.image_ids,
+            api_key=request.api_key,
+            stream=True
+        )
+        
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+        
+        # Return streaming response
+        def generate_stream():
+            try:
+                for chunk in result["stream"]:
+                    # Check if chunk has choices and delta content
+                    if (chunk.choices and 
+                        len(chunk.choices) > 0 and 
+                        chunk.choices[0].delta and 
+                        chunk.choices[0].delta.content is not None):
+                        
+                        content = chunk.choices[0].delta.content
+                        # Only yield if content is not empty
+                        if content:
+                            yield f"data: {content}\n\n"
+                    
+                    # Check if we've reached the end
+                    if (chunk.choices and 
+                        len(chunk.choices) > 0 and 
+                        chunk.choices[0].finish_reason is not None):
+                        break
+                        
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                print(f"Streaming error: {e}")  # Log for debugging
+                yield f"data: Error: {str(e)}\n\n"
+        
+        return StreamingResponse(
+            generate_stream(),
+            media_type="text/plain",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Cache-Control"
+            }
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error in chat: {str(e)}")
 
 
 @router.post("/search", response_model=SearchResponse)

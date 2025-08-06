@@ -74,3 +74,16 @@ class CollectionInfoResponse(BaseModel):
 class ClearResponse(BaseModel):
     status: str
     message: str
+
+
+class ChatRequest(BaseModel):
+    query: str
+    image_ids: List[str]
+    api_key: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    status: str
+    query: Optional[str] = None
+    response: Optional[str] = None
+    message: Optional[str] = None
