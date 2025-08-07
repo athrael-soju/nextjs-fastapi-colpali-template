@@ -36,7 +36,6 @@ class ItemRead(ItemBase):
 class SearchRequest(BaseModel):
     query: str
     k: Optional[int] = 5
-    api_key: Optional[str] = None
 
 
 class SearchResult(BaseModel):
@@ -52,7 +51,6 @@ class SearchResponse(BaseModel):
     query: Optional[str] = None
     results: Optional[List[SearchResult]] = None
     total_results: Optional[int] = None
-    ai_response: Optional[str] = None
     message: Optional[str] = None
 
 
@@ -75,15 +73,4 @@ class ClearResponse(BaseModel):
     status: str
     message: str
 
-
-class ChatRequest(BaseModel):
-    query: str
-    image_ids: List[str]
-    api_key: Optional[str] = None
-
-
-class ChatResponse(BaseModel):
-    status: str
-    query: Optional[str] = None
-    response: Optional[str] = None
-    message: Optional[str] = None
+ 

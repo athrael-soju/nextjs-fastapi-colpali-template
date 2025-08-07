@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # Processing
     DEFAULT_TOP_K: Final[int] = int(os.getenv("DEFAULT_TOP_K", "5"))
-    MAX_TOKENS: Final[int] = int(os.getenv("MAX_TOKENS", "500"))
+    MAX_TOKENS: Final[int] = int(os.getenv("MAX_TOKENS", "-1"))
     BATCH_SIZE: Final[int] = int(os.getenv("BATCH_SIZE", "4"))
     WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
 

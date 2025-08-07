@@ -26,12 +26,6 @@ export type Body_colpali_index_documents = {
   files: Array<Blob | File>;
 };
 
-export type ChatRequest = {
-  query: string;
-  image_ids: Array<string>;
-  api_key?: string | null;
-};
-
 export type ClearResponse = {
   status: string;
   message: string;
@@ -84,7 +78,6 @@ export type login = {
 export type SearchRequest = {
   query: string;
   k?: number | null;
-  api_key?: string | null;
 };
 
 export type SearchResponse = {
@@ -92,7 +85,6 @@ export type SearchResponse = {
   query?: string | null;
   results?: Array<SearchResult> | null;
   total_results?: number | null;
-  ai_response?: string | null;
   message?: string | null;
 };
 
@@ -281,14 +273,6 @@ export type GetProgressStatusData = {
 export type GetProgressStatusResponse = unknown;
 
 export type GetProgressStatusError = HTTPValidationError;
-
-export type ChatWithImagesData = {
-  body: ChatRequest;
-};
-
-export type ChatWithImagesResponse = unknown;
-
-export type ChatWithImagesError = HTTPValidationError;
 
 export type SearchDocumentsData = {
   body: SearchRequest;

@@ -59,9 +59,6 @@ import type {
   GetProgressStatusData,
   GetProgressStatusError,
   GetProgressStatusResponse,
-  ChatWithImagesData,
-  ChatWithImagesError,
-  ChatWithImagesResponse,
   SearchDocumentsData,
   SearchDocumentsError,
   SearchDocumentsResponse,
@@ -376,23 +373,6 @@ export const getProgressStatus = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: "/colpali/progress/{task_id}/status",
-  });
-};
-
-/**
- * Chat With Images
- * Chat with specific images using streaming response
- */
-export const chatWithImages = <ThrowOnError extends boolean = false>(
-  options: OptionsLegacyParser<ChatWithImagesData, ThrowOnError>,
-) => {
-  return (options?.client ?? client).post<
-    ChatWithImagesResponse,
-    ChatWithImagesError,
-    ThrowOnError
-  >({
-    ...options,
-    url: "/colpali/chat",
   });
 };
 

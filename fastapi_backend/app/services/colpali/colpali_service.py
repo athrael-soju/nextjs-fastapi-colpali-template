@@ -1,10 +1,8 @@
 import torch
 import uuid
-import os
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 
 from app.config import settings
-from .openai_service import query_openai
 from .qdrant_service import QdrantService
 from .memory_store import MemoryStoreService
 from .pdf_utils import convert_files_to_images
@@ -13,8 +11,8 @@ from .exceptions import (
     StorageServiceError,
     InvalidConfigurationError,
 )
-from app.services.progress_manager import ProgressManager, ProgressStatus
-
+from dotenv import load_dotenv
+load_dotenv()
 
 class ColPaliService:
     def __init__(self):
@@ -95,8 +93,8 @@ class ColPaliService:
                 "message": f"Error indexing documents: {str(e)}"
             }
     
-    def search_documents(self, query: str, k: int = None, api_key: str = None):
-        """Search indexed documents and optionally query OpenAI"""
+    def search_documents(self, query: str, k: int = None):
+        """Search indexed documents"""
         if k is None:
             k = settings.DEFAULT_TOP_K
             
@@ -136,7 +134,7 @@ class ColPaliService:
                     "page_info": page_info,
                     "image_size": image.size if hasattr(image, 'size') else None,
                     "image_url": image_url,
-                    "thumbnail_url": thumbnail_url or image_url  # Fallback to image_url if no thumbnail
+                    "thumbnail_url": thumbnail_url
                 })
             
             response = {
@@ -145,11 +143,6 @@ class ColPaliService:
                 "results": search_results,
                 "total_results": len(results)
             }
-            
-            # Query OpenAI if API key is provided
-            if api_key and api_key.strip():
-                ai_response = query_openai(query, results, api_key)
-                response["ai_response"] = ai_response
             
             return response
             
@@ -210,66 +203,4 @@ class ColPaliService:
         """Get image by ID for serving"""
         return self.image_store.get(image_id)
     
-    def chat_with_images(self, query: str, image_ids: list, api_key: str = None, stream: bool = False):
-        """Chat with specific images using OpenAI"""
-        try:
-            # Get images by IDs
-            images = []
-            for image_id in image_ids:
-                image = self.get_image_by_id(image_id)
-                if image:
-                    images.append((image, ""))  # Format expected by query_openai
-                else:
-                    return {
-                        "status": "error",
-                        "message": f"Image with ID {image_id} not found"
-                    }
-            
-            if not images:
-                return {
-                    "status": "error",
-                    "message": "No valid images found"
-                }
-            
-            # Determine which API key to use - user provided or environment variable
-            effective_api_key = None
-            if api_key and api_key.strip():
-                effective_api_key = api_key.strip()
-                print(f"Using user-provided API key: {effective_api_key[:10]}...")
-            else:
-                # Fall back to environment variable
-                env_key = os.getenv('OPENAI_API_KEY')
-                if env_key and env_key.strip():
-                    effective_api_key = env_key.strip()
-                    print(f"Using environment API key: {effective_api_key[:10]}...")
-                else:
-                    print("No API key found in environment variables")
-            
-            # Call OpenAI with streaming support
-            if effective_api_key:
-                response = query_openai(query, images, effective_api_key, stream=stream)
-                
-                if stream:
-                    return {
-                        "status": "success",
-                        "query": query,
-                        "stream": response
-                    }
-                else:
-                    return {
-                        "status": "success",
-                        "query": query,
-                        "response": response
-                    }
-            else:
-                env_status = "OPENAI_API_KEY not found" if not os.getenv('OPENAI_API_KEY') else "OPENAI_API_KEY is empty"
-                return {
-                    "status": "error",
-                    "message": f"API key is required for chat functionality. Please provide an API key or set OPENAI_API_KEY environment variable. Environment status: {env_status}"
-                }
-                
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Error in chat: {str(e)}"
-            }
+    
