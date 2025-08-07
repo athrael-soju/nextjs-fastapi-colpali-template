@@ -73,4 +73,18 @@ class ClearResponse(BaseModel):
     status: str
     message: str
 
+
+class ConversationRequest(BaseModel):
+    prompt: str
+    top_k: Optional[int] = 5
+
+
+class ConversationResponse(BaseModel):
+    status: str
+    prompt: Optional[str] = None
+    response: Optional[str] = None
+    retrieved_images: Optional[List[str]] = None
+    total_retrieved: Optional[int] = None
+    message: Optional[str] = None
+
  

@@ -40,6 +40,20 @@ export type CollectionInfoResponse = {
   message?: string | null;
 };
 
+export type ConversationRequest = {
+  prompt: string;
+  top_k?: number | null;
+};
+
+export type ConversationResponse = {
+  status: string;
+  prompt?: string | null;
+  response?: string | null;
+  retrieved_images?: Array<string> | null;
+  total_retrieved?: number | null;
+  message?: string | null;
+};
+
 export type ErrorModel = {
   detail:
     | string
@@ -303,3 +317,15 @@ export type GetSearchImageError = HTTPValidationError;
 export type HealthCheckResponse = unknown;
 
 export type HealthCheckError = unknown;
+
+export type ConversationalChatData = {
+  body: ConversationRequest;
+};
+
+export type ConversationalChatResponse = ConversationResponse;
+
+export type ConversationalChatError = HTTPValidationError;
+
+export type ConversationHealthCheckResponse = unknown;
+
+export type ConversationHealthCheckError = unknown;

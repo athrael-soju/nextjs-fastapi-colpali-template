@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .utils import simple_generate_unique_route_id
 from app.routes.items import router as items_router
 from app.routes.colpali import router as colpali_router
+from app.routes.conversation import router as conversation_router
 from app.config import settings
 
 app = FastAPI(
@@ -53,3 +54,6 @@ app.include_router(items_router, prefix="/items")
 
 # Include ColPali routes
 app.include_router(colpali_router, prefix="/colpali")
+
+# Include Conversation routes
+app.include_router(conversation_router, prefix="/conversation")

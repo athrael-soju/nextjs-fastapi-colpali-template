@@ -71,6 +71,11 @@ import type {
   GetSearchImageResponse,
   HealthCheckError,
   HealthCheckResponse,
+  ConversationalChatData,
+  ConversationalChatError,
+  ConversationalChatResponse,
+  ConversationHealthCheckError,
+  ConversationHealthCheckResponse,
 } from "./types.gen";
 
 export const client = createClient(createConfig());
@@ -458,5 +463,43 @@ export const healthCheck = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: "/colpali/health",
+  });
+};
+
+/**
+ * Conversational Chat
+ * Conversational chat endpoint that:
+ * 1. Embeds the user's prompt using ColPali
+ * 2. Retrieves top-k relevant images from MinIO/storage
+ * 3. Sends the prompt and images to OpenAI Vision API
+ * 4. Returns the conversational response
+ */
+export const conversationalChat = <ThrowOnError extends boolean = false>(
+  options: OptionsLegacyParser<ConversationalChatData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    ConversationalChatResponse,
+    ConversationalChatError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/conversation/chat",
+  });
+};
+
+/**
+ * Conversation Health Check
+ * Health check for conversation services
+ */
+export const conversationHealthCheck = <ThrowOnError extends boolean = false>(
+  options?: OptionsLegacyParser<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ConversationHealthCheckResponse,
+    ConversationHealthCheckError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/conversation/health",
   });
 };
