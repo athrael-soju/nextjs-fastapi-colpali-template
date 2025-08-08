@@ -54,6 +54,12 @@ export type ConversationResponse = {
   message?: string | null;
 };
 
+export type ConversationStreamRequest = {
+  prompt: string;
+  top_k?: number | null;
+  stream?: boolean;
+};
+
 export type ErrorModel = {
   detail:
     | string

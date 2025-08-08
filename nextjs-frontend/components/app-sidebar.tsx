@@ -2,7 +2,7 @@
 
 import type * as React from "react"
 import Link from "next/link"
-import { Search, Upload, Database, User, LogOut, GalleryVerticalEnd } from "lucide-react"
+import { Search, Upload, Database, User, LogOut, GalleryVerticalEnd, MessageSquare } from "lucide-react"
 import { LogoutButton } from "@/components/logout-button"
 
 import {
@@ -33,6 +33,12 @@ const data = {
           title: "Search Documents",
           icon: Search,
           href: "/dashboard/search",
+        },
+        {
+          id: "chat",
+          title: "AI Chat",
+          icon: MessageSquare,
+          href: "/dashboard/chat",
         },
         {
           id: "upload",

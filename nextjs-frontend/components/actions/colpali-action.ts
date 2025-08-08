@@ -9,12 +9,15 @@ import {
   healthCheck,
   getProgressStream,
   getProgressStatus,
+  conversationalChat,
 } from "@/app/clientService";
 import type {
   SearchResponse,
   CollectionInfoResponse,
   ClearResponse,
   SearchRequest,
+  ConversationRequest,
+  ConversationResponse,
 } from "@/app/clientService";
 
 async function getAuthToken() {
@@ -164,6 +167,35 @@ export async function getProgressStatusAction(taskId: string): Promise<any> {
 
   if (error) {
     throw new Error(`Progress status failed: ${JSON.stringify(error)}`);
+  }
+
+  return data;
+}
+
+export async function conversationalChatAction(
+  prompt: string,
+  topK: number = 5
+): Promise<ConversationResponse> {
+  const token = await getAuthToken();
+  
+  const conversationRequest: ConversationRequest = {
+    prompt,
+    top_k: topK,
+  };
+
+  const { data, error } = await conversationalChat({
+    body: conversationRequest,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (error) {
+    throw new Error(`Conversation operation failed: ${JSON.stringify(error)}`);
+  }
+
+  if (!data) {
+    throw new Error("No data received from conversation operation");
   }
 
   return data;

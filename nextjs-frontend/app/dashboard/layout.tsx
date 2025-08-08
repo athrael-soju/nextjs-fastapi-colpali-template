@@ -22,6 +22,8 @@ export default function DashboardLayout({
     switch (lastSegment) {
       case 'search':
         return 'search'
+      case 'chat':
+        return 'chat'
       case 'upload':
         return 'upload'
       case 'collection':
