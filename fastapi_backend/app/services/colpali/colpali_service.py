@@ -116,9 +116,14 @@ class ColPaliService:
                     # Handle old format (image, page_info)
                     image, page_info = result
                     thumbnail_url = None
-                else:
-                    # Handle new format (image, page_info, thumbnail_url)
+                    original_image_url = None
+                elif len(result) == 3:
+                    # Handle format with thumbnail (image, page_info, thumbnail_url)
                     image, page_info, thumbnail_url = result
+                    original_image_url = None
+                else:
+                    # Handle new format with both URLs (image, page_info, thumbnail_url, image_url)
+                    image, page_info, thumbnail_url, original_image_url = result
                 
                 # Generate unique ID for the image
                 image_id = str(uuid.uuid4())
@@ -126,7 +131,7 @@ class ColPaliService:
                 # Store image in the image store for serving
                 self.image_store[image_id] = image
                 
-                # Generate image URL
+                # Generate image URL for serving
                 image_url = f"/colpali/image/{image_id}"
                 
                 search_results.append({
@@ -134,7 +139,8 @@ class ColPaliService:
                     "page_info": page_info,
                     "image_size": image.size if hasattr(image, 'size') else None,
                     "image_url": image_url,
-                    "thumbnail_url": thumbnail_url
+                    "thumbnail_url": thumbnail_url,
+                    "original_image_url": original_image_url  # The full-size URL from storage
                 })
             
             response = {

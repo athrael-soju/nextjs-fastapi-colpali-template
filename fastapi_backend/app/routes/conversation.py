@@ -112,12 +112,14 @@ async def conversational_chat(
         elif settings.STORAGE_TYPE == "qdrant":
             # For Qdrant storage, we need to retrieve images from MinIO using image URLs
             for result in search_results:
-                thumbnail_url = result.get("thumbnail_url")
-                if thumbnail_url:
+                # Get the original full-size image URL from MinIO
+                original_image_url = result.get("original_image_url")
+                
+                if original_image_url:
                     try:
                         # Extract image ID from MinIO URL
                         # Format: http://minio:9000/bucket/images/{image_id}.png
-                        url_parts = thumbnail_url.split("/")
+                        url_parts = original_image_url.split("/")
                         if len(url_parts) >= 2:
                             filename = url_parts[-1]  # e.g., "image_id.png"
                             image_id = filename.split(".")[0]  # Remove extension
@@ -126,7 +128,8 @@ async def conversational_chat(
                             image = minio_svc.get_image(image_id)
                             if image:
                                 images_for_analysis.append(image)
-                                image_urls.append(thumbnail_url)
+                                # Use the original full-size image URL for frontend
+                                image_urls.append(original_image_url)
                     except Exception as e:
                         logger.warning(f"Failed to retrieve image from MinIO: {e}")
                         continue

@@ -261,7 +261,8 @@ class QdrantService:
                         image_id = image_url.split('/')[-1].replace('.png', '')
                         # Retrieve image from MinIO
                         image = self.minio_service.get_image(image_id)
-                        results.append((image, page_info, thumbnail_url))
+                        # Return tuple with (image, page_info, thumbnail_url, image_url)
+                        results.append((image, page_info, thumbnail_url, image_url))
                     else:
                         raise Exception(f"Cannot retrieve image for point {i}. Image URL: {image_url}, MinIO available: {self.minio_service is not None}")
                         
